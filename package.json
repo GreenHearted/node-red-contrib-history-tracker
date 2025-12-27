@@ -1,0 +1,38 @@
+{
+  "name": "node-red-contrib-history-tracker",
+  "version": "1.0.0",
+  "description": "Node-RED node to track and store historical values with automatic time-based aggregation (hour, day, month, year)",
+  "main": "history-tracker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": [
+    "history-tracker.js",
+    "history-tracker.html",
+    "README.md",
+    "INSTALL_HOME_ASSISTANT.md"
+  ],
+  "keywords": [
+    "node-red",
+    "history",
+    "tracker",
+    "statistics",
+    "aggregation",
+    "time-series",
+    "water-meter",
+    "energy-meter"
+  ],
+  "node-red": {
+    "nodes": {
+      "history-tracker": "history-tracker.js"
+    }
+  },
+  "author": "GreenHearted",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GreenHearted/node-red-contrib-history-tracker.git"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
