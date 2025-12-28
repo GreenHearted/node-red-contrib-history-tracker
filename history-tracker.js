@@ -3,6 +3,8 @@ const path = require('path');
 
 module.exports = function(RED) {
     
+    const VERSION = "1.2.0-debug";
+    
     function HistoryTrackerNode(config) {
         RED.nodes.createNode(this, config);
         const node = this;
@@ -14,8 +16,9 @@ module.exports = function(RED) {
         node.outputMode = config.outputMode || 'none'; // none, last, current, all
         node.unit = config.unit || 'Liter';
         
-        // Status setzen
-        node.status({fill: "green", shape: "dot", text: "bereit"});
+        // Status setzen mit Version
+        node.status({fill: "green", shape: "dot", text: `bereit (v${VERSION})`});
+        node.log(`History Tracker initialisiert - Version ${VERSION}`);
         
         node.on('input', function(msg) {
             try {
@@ -34,7 +37,7 @@ module.exports = function(RED) {
                 }
                 
                 // Verarbeite den Wert
-                const daten = speichereWert(node.filepath, wert, node.unit);
+                const daten = speichereWert(node.filepath, wert, node.unit, node);
                 
                 // Status aktualisieren
                 node.status({
@@ -73,7 +76,7 @@ module.exports = function(RED) {
     }
     
     // Hilfsfunktionen
-    function speichereWert(filepath, wert, unit) {
+    function speichereWert(filepath, wert, unit, node) {
         const jetzt = new Date();
         const timestamp = jetzt.toLocaleString('de-DE');
         
@@ -84,14 +87,25 @@ module.exports = function(RED) {
         
         let daten = ladeDaten(filepath);
         
+        // Debug: Geladene Daten
+        if (node) {
+            node.log(`[DEBUG] Geladener letzterWert: ${JSON.stringify(daten.letzterWert)}`);
+        }
+        
         // Berechne Differenz zum letzten Wert
         let differenz = 0;
         if (daten.letzterWert.wert !== undefined) {
             differenz = wert - daten.letzterWert.wert;
+            if (node) {
+                node.log(`[DEBUG] Differenz berechnet: ${wert} - ${daten.letzterWert.wert} = ${differenz}`);
+            }
             // Negative Differenzen werden auf 0 gesetzt
             if (differenz < 0) {
+                if (node) node.log(`[DEBUG] Negative Differenz auf 0 gesetzt`);
                 differenz = 0;
             }
+        } else {
+            if (node) node.log(`[DEBUG] Erster Wert - keine Differenz berechnet`);
         }
         
         // Aktualisiere letzten Wert
@@ -118,7 +132,11 @@ module.exports = function(RED) {
             if (daten.aktuelleStunde.wert === undefined) {
                 daten.aktuelleStunde.wert = 0;
             }
+            const alterWert = daten.aktuelleStunde.wert;
             daten.aktuelleStunde.wert += differenz;
+            if (node) {
+                node.log(`[DEBUG] Stunde: ${alterWert} + ${differenz} = ${daten.aktuelleStunde.wert}`);
+            }
             daten.aktuelleStunde.zeitstempel = timestamp;
         }
         

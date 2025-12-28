@@ -7,7 +7,8 @@
             filename: {value: "history.txt", required: true},
             filepath: {value: ""},
             valueField: {value: "payload"},
-            outputMode: {value: "none"}
+            outputMode: {value: "none"},
+            unit: {value: "Liter"}
         },
         inputs: 1,
         outputs: 1,
@@ -24,88 +25,61 @@
 <script type="text/html" data-template-name="history-tracker">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="History Tracker">
+        <input type="text" id="node-input-name" placeholder="Name">
     </div>
-    
     <div class="form-row">
         <label for="node-input-filename"><i class="fa fa-file"></i> Dateiname</label>
         <input type="text" id="node-input-filename" placeholder="history.txt">
     </div>
-    
     <div class="form-row">
-        <label for="node-input-filepath"><i class="fa fa-folder"></i> Pfad</label>
-        <input type="text" id="node-input-filepath" placeholder="Leer = Node-RED Verzeichnis">
+        <label for="node-input-filepath"><i class="fa fa-folder"></i> Dateipfad</label>
+        <input type="text" id="node-input-filepath" placeholder="Leer = userDir">
     </div>
-    
     <div class="form-row">
-        <label for="node-input-valueField"><i class="fa fa-arrows-h"></i> Wertfeld</label>
+        <label for="node-input-valueField"><i class="fa fa-list"></i> Wert-Feld</label>
         <input type="text" id="node-input-valueField" placeholder="payload">
     </div>
-    
     <div class="form-row">
-        <label for="node-input-outputMode"><i class="fa fa-sign-out"></i> Output</label>
-        <select id="node-input-outputMode" style="width:70%">
+        <label for="node-input-unit"><i class="fa fa-balance-scale"></i> Einheit</label>
+        <input type="text" id="node-input-unit" placeholder="Liter">
+    </div>
+    <div class="form-row">
+        <label for="node-input-outputMode"><i class="fa fa-sign-out"></i> Output Modus</label>
+        <select id="node-input-outputMode">
             <option value="none">Kein Output</option>
             <option value="last">Nur letzter Wert</option>
-            <option value="current">Aktuelle Werte</option>
+            <option value="current">Aktuelle Perioden</option>
             <option value="all">Alle Daten</option>
         </select>
     </div>
 </script>
 
 <script type="text/html" data-help-name="history-tracker">
-    <p>Speichert Werte mit automatischer zeitbasierter Aggregation.</p>
+    <p>Speichert Werte mit Differenzberechnung und aggregiert sie nach Stunde, Tag, Monat und Jahr.</p>
     
-    <h3>Eingabe</h3>
+    <h3>Konfiguration</h3>
     <dl class="message-properties">
-        <dt>payload <span class="property-type">number</span></dt>
-        <dd>Der zu speichernde Wert (z.B. Wasserverbrauch in Litern)</dd>
-    </dl>
-    
-    <h3>Ausgabe</h3>
-    <dl class="message-properties">
-        <dt>payload <span class="property-type">object</span></dt>
-        <dd>Je nach gewähltem Output-Modus werden verschiedene Daten zurückgegeben</dd>
-    </dl>
-    
-    <h3>Eigenschaften</h3>
-    <dl class="message-properties">
-        <dt>Dateiname</dt>
-        <dd>Name der History-Datei (Standard: history.txt)</dd>
+        <dt>Dateiname <span class="property-type">string</span></dt>
+        <dd>Name der Datei zum Speichern der Historie</dd>
         
-        <dt>Pfad</dt>
-        <dd>Vollständiger Pfad zur Datei. Leer = Node-RED Verzeichnis</dd>
+        <dt>Dateipfad <span class="property-type">string</span></dt>
+        <dd>Vollständiger Pfad zur Datei (optional, Standard: userDir)</dd>
         
-        <dt>Wertfeld</dt>
-        <dd>Feld der msg, das den Wert enthält (Standard: payload)</dd>
+        <dt>Wert-Feld <span class="property-type">string</span></dt>
+        <dd>Name des Feldes in msg, aus dem der Wert gelesen wird (Standard: payload)</dd>
         
-        <dt>Output</dt>
-        <dd>Bestimmt, welche Daten ausgegeben werden:
-            <ul>
-                <li><b>Kein Output:</b> Node gibt nichts aus</li>
-                <li><b>Nur letzter Wert:</b> Gibt den zuletzt gespeicherten Wert zurück</li>
-                <li><b>Aktuelle Werte:</b> Gibt aktuelle Stunde, Tag, Monat, Jahr zurück</li>
-                <li><b>Alle Daten:</b> Gibt alle Daten inkl. History zurück</li>
-            </ul>
-        </dd>
+        <dt>Einheit <span class="property-type">string</span></dt>
+        <dd>Einheit für die Werte (z.B. Liter, kWh, m³)</dd>
+        
+        <dt>Output Modus <span class="property-type">string</span></dt>
+        <dd>Bestimmt, welche Daten als Output gesendet werden</dd>
     </dl>
-    
-    <h3>Details</h3>
-    <p>Dieser Node speichert Werte und aggregiert sie automatisch in verschiedenen Zeitperioden:</p>
+
+    <h3>Funktionsweise</h3>
+    <p>Der Node berechnet die Differenz zwischen aufeinanderfolgenden Werten und summiert diese pro Zeitperiode.</p>
     <ul>
-        <li><b>Letzter Wert:</b> Der zuletzt empfangene Wert mit Zeitstempel</li>
-        <li><b>Stundenwerte:</b> Aktuelle und letzte Stunde</li>
-        <li><b>Tageswerte:</b> Aktueller und letzter Tag</li>
-        <li><b>Monatswerte:</b> Aktueller Monat + History aller vergangenen Monate</li>
-        <li><b>Jahreswerte:</b> Aktuelles Jahr + History aller vergangenen Jahre</li>
+        <li>Negative Differenzen werden ignoriert (Counter-Reset)</li>
+        <li>Beim Periodenwechsel startet die neue Periode bei 0</li>
+        <li>Die alte Periode wird in die Historie verschoben</li>
     </ul>
-    
-    <p>Die Werte werden automatisch addiert, wenn sie innerhalb der gleichen Periode ankommen.</p>
-    
-    <h3>Beispiel</h3>
-    <pre>
-// Wasserverbrauch speichern
-msg.payload = 15.5;  // 15.5 Liter
-return msg;
-    </pre>
 </script>
