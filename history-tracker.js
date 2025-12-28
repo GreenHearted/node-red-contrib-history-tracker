@@ -234,6 +234,10 @@ module.exports = function(RED) {
         try {
             const inhalt = fs.readFileSync(filepath, 'utf8');
             const parsed = parseHistoryDatei(inhalt);
+            // Debug: Erste Zeilen der Datei
+            const ersteZeilen = inhalt.split('\n').slice(0, 10).join('\n');
+            RED.log.info(`[DEBUG] Erste 10 Zeilen:\n${ersteZeilen}`);
+            RED.log.info(`[DEBUG] Parsed letzterWert: ${JSON.stringify(parsed.letzterWert)}`);
             return parsed;
         } catch (error) {
             return {
