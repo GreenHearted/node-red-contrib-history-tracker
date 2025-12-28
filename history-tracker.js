@@ -12,6 +12,7 @@ module.exports = function(RED) {
         node.filepath = config.filepath || path.join(RED.settings.userDir, node.filename);
         node.valueField = config.valueField || 'payload';
         node.outputMode = config.outputMode || 'none'; // none, last, current, all
+        node.unit = config.unit || 'Liter';
         
         // Status setzen
         node.status({fill: "green", shape: "dot", text: "bereit"});
@@ -33,13 +34,13 @@ module.exports = function(RED) {
                 }
                 
                 // Verarbeite den Wert
-                const daten = speichereWert(node.filepath, wert);
+                const daten = speichereWert(node.filepath, wert, node.unit);
                 
                 // Status aktualisieren
                 node.status({
                     fill: "green", 
                     shape: "dot", 
-                    text: `${wert.toFixed(2)} L gespeichert`
+                    text: `${wert.toFixed(2)} ${node.unit} gespeichert`
                 });
                 
                 // Output basierend auf Konfiguration
@@ -72,7 +73,7 @@ module.exports = function(RED) {
     }
     
     // Hilfsfunktionen
-    function speichereWert(filepath, wert) {
+    function speichereWert(filepath, wert, unit) {
         const jetzt = new Date();
         const timestamp = jetzt.toLocaleString('de-DE');
         
@@ -83,6 +84,17 @@ module.exports = function(RED) {
         
         let daten = ladeDaten(filepath);
         
+        // Berechne Differenz zum letzten Wert
+        let differenz = 0;
+        if (daten.letzterWert.wert !== undefined) {
+            differenz = wert - daten.letzterWert.wert;
+            // Negative Differenzen werden auf 0 gesetzt
+            if (differenz < 0) {
+                differenz = 0;
+            }
+        }
+        
+        // Aktualisiere letzten Wert
         daten.letzterWert = {
             wert: wert,
             zeitstempel: timestamp
@@ -91,68 +103,80 @@ module.exports = function(RED) {
         const stundenKey = `${aktuellesJahr}-${String(aktuellerMonat).padStart(2, '0')}-${String(aktuellerTag).padStart(2, '0')}_${String(aktuelleStunde).padStart(2, '0')}`;
         
         if (daten.aktuelleStunde.key !== stundenKey) {
+            // Neue Stunde - alte Stunde in Historie verschieben
             if (daten.aktuelleStunde.key) {
                 daten.letzteStunde = { ...daten.aktuelleStunde };
             }
+            // Neue Stunde beginnt bei 0
             daten.aktuelleStunde = {
                 key: stundenKey,
-                wert: wert,
+                wert: differenz,
                 zeitstempel: timestamp
             };
         } else {
-            daten.aktuelleStunde.wert += wert;
+            // Gleiche Stunde - Differenz hinzuaddieren
+            daten.aktuelleStunde.wert += differenz;
             daten.aktuelleStunde.zeitstempel = timestamp;
         }
         
         const tagesKey = `${aktuellesJahr}-${String(aktuellerMonat).padStart(2, '0')}-${String(aktuellerTag).padStart(2, '0')}`;
         
         if (daten.aktuellerTag.key !== tagesKey) {
+            // Neuer Tag - alten Tag in Historie verschieben
             if (daten.aktuellerTag.key) {
                 daten.letzterTag = { ...daten.aktuellerTag };
             }
+            // Neuer Tag beginnt bei 0
             daten.aktuellerTag = {
                 key: tagesKey,
-                wert: wert,
+                wert: differenz,
                 zeitstempel: timestamp
             };
         } else {
-            daten.aktuellerTag.wert += wert;
+            // Gleicher Tag - Differenz hinzuaddieren
+            daten.aktuellerTag.wert += differenz;
             daten.aktuellerTag.zeitstempel = timestamp;
         }
         
         const monatsKey = `${aktuellesJahr}-${String(aktuellerMonat).padStart(2, '0')}`;
         
         if (daten.aktuellerMonat.key !== monatsKey) {
+            // Neuer Monat - alten Monat in Historie verschieben
             if (daten.aktuellerMonat.key) {
                 daten.monatsHistory.push({ ...daten.aktuellerMonat });
             }
+            // Neuer Monat beginnt bei 0
             daten.aktuellerMonat = {
                 key: monatsKey,
-                wert: wert,
+                wert: differenz,
                 zeitstempel: timestamp
             };
         } else {
-            daten.aktuellerMonat.wert += wert;
+            // Gleicher Monat - Differenz hinzuaddieren
+            daten.aktuellerMonat.wert += differenz;
             daten.aktuellerMonat.zeitstempel = timestamp;
         }
         
         const jahresKey = `${aktuellesJahr}`;
         
         if (daten.aktuellesJahr.key !== jahresKey) {
+            // Neues Jahr - altes Jahr in Historie verschieben
             if (daten.aktuellesJahr.key) {
                 daten.jahresHistory.push({ ...daten.aktuellesJahr });
             }
+            // Neues Jahr beginnt bei 0
             daten.aktuellesJahr = {
                 key: jahresKey,
-                wert: wert,
+                wert: differenz,
                 zeitstempel: timestamp
             };
         } else {
-            daten.aktuellesJahr.wert += wert;
+            // Gleiches Jahr - Differenz hinzuaddieren
+            daten.aktuellesJahr.wert += differenz;
             daten.aktuellesJahr.zeitstempel = timestamp;
         }
         
-        speichereDaten(filepath, daten);
+        speichereDaten(filepath, daten, unit);
         return daten;
     }
     
@@ -223,7 +247,7 @@ module.exports = function(RED) {
             
             if (!zeile || zeile.startsWith('---') || zeile.startsWith('Monat') || zeile.startsWith('Jahr')) continue;
             
-            const wertMatch = zeile.match(/Wert:\s*([\d.]+)\s*Liter/);
+            const wertMatch = zeile.match(/Wert:\s*([\d.]+)/);
             const zeitMatch = zeile.match(/Zeitstempel:\s*(.+)/);
             const keyMatch = zeile.match(/Periode:\s*(.+)/);
             
@@ -232,7 +256,7 @@ module.exports = function(RED) {
                     const eintrag = { key: keyMatch[1].trim() };
                     
                     if (i + 1 < zeilen.length) {
-                        const nextWertMatch = zeilen[i + 1].match(/Wert:\s*([\d.]+)\s*Liter/);
+                        const nextWertMatch = zeilen[i + 1].match(/Wert:\s*([\d.]+)/);
                         if (nextWertMatch) eintrag.wert = parseFloat(nextWertMatch[1]);
                     }
                     if (i + 2 < zeilen.length) {
@@ -260,14 +284,14 @@ module.exports = function(RED) {
         return daten;
     }
     
-    function speichereDaten(filepath, daten) {
+    function speichereDaten(filepath, daten, unit) {
         let inhalt = '';
         
         inhalt += '='.repeat(60) + '\n';
         inhalt += '  LETZTER WERT\n';
         inhalt += '='.repeat(60) + '\n';
         if (daten.letzterWert.wert !== undefined) {
-            inhalt += `Wert: ${daten.letzterWert.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.letzterWert.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.letzterWert.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -277,7 +301,7 @@ module.exports = function(RED) {
         inhalt += '='.repeat(60) + '\n';
         if (daten.aktuelleStunde.key) {
             inhalt += `Periode: ${daten.aktuelleStunde.key}\n`;
-            inhalt += `Wert: ${daten.aktuelleStunde.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.aktuelleStunde.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.aktuelleStunde.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -287,7 +311,7 @@ module.exports = function(RED) {
         inhalt += '='.repeat(60) + '\n';
         if (daten.letzteStunde.key) {
             inhalt += `Periode: ${daten.letzteStunde.key}\n`;
-            inhalt += `Wert: ${daten.letzteStunde.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.letzteStunde.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.letzteStunde.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -297,7 +321,7 @@ module.exports = function(RED) {
         inhalt += '='.repeat(60) + '\n';
         if (daten.aktuellerTag.key) {
             inhalt += `Periode: ${daten.aktuellerTag.key}\n`;
-            inhalt += `Wert: ${daten.aktuellerTag.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.aktuellerTag.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.aktuellerTag.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -307,7 +331,7 @@ module.exports = function(RED) {
         inhalt += '='.repeat(60) + '\n';
         if (daten.letzterTag.key) {
             inhalt += `Periode: ${daten.letzterTag.key}\n`;
-            inhalt += `Wert: ${daten.letzterTag.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.letzterTag.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.letzterTag.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -317,7 +341,7 @@ module.exports = function(RED) {
         inhalt += '='.repeat(60) + '\n';
         if (daten.aktuellerMonat.key) {
             inhalt += `Periode: ${daten.aktuellerMonat.key}\n`;
-            inhalt += `Wert: ${daten.aktuellerMonat.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.aktuellerMonat.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.aktuellerMonat.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -329,7 +353,7 @@ module.exports = function(RED) {
             daten.monatsHistory.forEach((monat, index) => {
                 inhalt += `\nMonat ${index + 1}:\n`;
                 inhalt += `Periode: ${monat.key}\n`;
-                inhalt += `Wert: ${monat.wert.toFixed(2)} Liter\n`;
+                inhalt += `Wert: ${monat.wert.toFixed(2)} ${unit}\n`;
                 inhalt += `Zeitstempel: ${monat.zeitstempel}\n`;
                 inhalt += '-'.repeat(40) + '\n';
             });
@@ -341,7 +365,7 @@ module.exports = function(RED) {
         inhalt += '='.repeat(60) + '\n';
         if (daten.aktuellesJahr.key) {
             inhalt += `Periode: ${daten.aktuellesJahr.key}\n`;
-            inhalt += `Wert: ${daten.aktuellesJahr.wert.toFixed(2)} Liter\n`;
+            inhalt += `Wert: ${daten.aktuellesJahr.wert.toFixed(2)} ${unit}\n`;
             inhalt += `Zeitstempel: ${daten.aktuellesJahr.zeitstempel}\n`;
         }
         inhalt += '\n';
@@ -353,7 +377,7 @@ module.exports = function(RED) {
             daten.jahresHistory.forEach((jahr, index) => {
                 inhalt += `\nJahr ${index + 1}:\n`;
                 inhalt += `Periode: ${jahr.key}\n`;
-                inhalt += `Wert: ${jahr.wert.toFixed(2)} Liter\n`;
+                inhalt += `Wert: ${jahr.wert.toFixed(2)} ${unit}\n`;
                 inhalt += `Zeitstempel: ${jahr.zeitstempel}\n`;
                 inhalt += '-'.repeat(40) + '\n';
             });
