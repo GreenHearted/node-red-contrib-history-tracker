@@ -306,14 +306,25 @@ module.exports = function(RED) {
                     }
                 }
             } else if (aktuellerBereich) {
-                if (keyMatch && !daten[aktuellerBereich].key) {
-                    daten[aktuellerBereich].key = keyMatch[1].trim();
-                }
-                if (wertMatch && daten[aktuellerBereich].wert === undefined) {
-                    daten[aktuellerBereich].wert = parseFloat(wertMatch[1]);
-                }
-                if (zeitMatch && !daten[aktuellerBereich].zeitstempel) {
-                    daten[aktuellerBereich].zeitstempel = zeitMatch[1].trim();
+                // Für letzterWert gibt es keine Periode, nur Wert und Zeitstempel
+                if (aktuellerBereich === 'letzterWert') {
+                    if (wertMatch && daten[aktuellerBereich].wert === undefined) {
+                        daten[aktuellerBereich].wert = parseFloat(wertMatch[1]);
+                    }
+                    if (zeitMatch && !daten[aktuellerBereich].zeitstempel) {
+                        daten[aktuellerBereich].zeitstempel = zeitMatch[1].trim();
+                    }
+                } else {
+                    // Für andere Bereiche: Periode, Wert und Zeitstempel
+                    if (keyMatch && !daten[aktuellerBereich].key) {
+                        daten[aktuellerBereich].key = keyMatch[1].trim();
+                    }
+                    if (wertMatch && daten[aktuellerBereich].wert === undefined) {
+                        daten[aktuellerBereich].wert = parseFloat(wertMatch[1]);
+                    }
+                    if (zeitMatch && !daten[aktuellerBereich].zeitstempel) {
+                        daten[aktuellerBereich].zeitstempel = zeitMatch[1].trim();
+                    }
                 }
             }
         }
