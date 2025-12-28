@@ -288,6 +288,7 @@ module.exports = function(RED) {
             
             if (!zeile || zeile.startsWith('---') || zeile.startsWith('Monat') || zeile.startsWith('Jahr')) continue;
             
+            // Regex matched jetzt auch mit Text nach der Zahl (z.B. "Liter")
             const wertMatch = zeile.match(/Wert:\s*([\d.]+)/);
             const zeitMatch = zeile.match(/Zeitstempel:\s*(.+)/);
             const keyMatch = zeile.match(/Periode:\s*(.+)/);
@@ -312,8 +313,12 @@ module.exports = function(RED) {
             } else if (aktuellerBereich) {
                 // Für letzterWert gibt es keine Periode, nur Wert und Zeitstempel
                 if (aktuellerBereich === 'letzterWert') {
-                    if (wertMatch && daten[aktuellerBereich].wert === undefined) {
-                        daten[aktuellerBereich].wert = parseFloat(wertMatch[1]);
+                    if (wertMatch) {
+                        RED.log.info(`[DEBUG PARSE] letzterWert - wertMatch gefunden: ${wertMatch[1]}, aktueller Wert: ${daten.letzterWert.wert}`);
+                        if (daten[aktuellerBereich].wert === undefined) {
+                            daten[aktuellerBereich].wert = parseFloat(wertMatch[1]);
+                            RED.log.info(`[DEBUG PARSE] letzterWert gesetzt auf: ${daten[aktuellerBereich].wert}`);
+                        }
                     }
                     if (zeitMatch && !daten[aktuellerBereich].zeitstempel) {
                         daten[aktuellerBereich].zeitstempel = zeitMatch[1].trim();
