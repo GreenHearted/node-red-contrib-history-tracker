@@ -107,7 +107,7 @@ module.exports = function(RED) {
             if (daten.aktuelleStunde.key) {
                 daten.letzteStunde = { ...daten.aktuelleStunde };
             }
-            // Neue Stunde beginnt bei 0
+            // Neue Stunde beginnt bei 0 und addiert die aktuelle Differenz
             daten.aktuelleStunde = {
                 key: stundenKey,
                 wert: differenz,
@@ -115,6 +115,9 @@ module.exports = function(RED) {
             };
         } else {
             // Gleiche Stunde - Differenz hinzuaddieren
+            if (daten.aktuelleStunde.wert === undefined) {
+                daten.aktuelleStunde.wert = 0;
+            }
             daten.aktuelleStunde.wert += differenz;
             daten.aktuelleStunde.zeitstempel = timestamp;
         }
@@ -126,7 +129,7 @@ module.exports = function(RED) {
             if (daten.aktuellerTag.key) {
                 daten.letzterTag = { ...daten.aktuellerTag };
             }
-            // Neuer Tag beginnt bei 0
+            // Neuer Tag beginnt bei 0 und addiert die aktuelle Differenz
             daten.aktuellerTag = {
                 key: tagesKey,
                 wert: differenz,
@@ -134,6 +137,9 @@ module.exports = function(RED) {
             };
         } else {
             // Gleicher Tag - Differenz hinzuaddieren
+            if (daten.aktuellerTag.wert === undefined) {
+                daten.aktuellerTag.wert = 0;
+            }
             daten.aktuellerTag.wert += differenz;
             daten.aktuellerTag.zeitstempel = timestamp;
         }
@@ -145,7 +151,7 @@ module.exports = function(RED) {
             if (daten.aktuellerMonat.key) {
                 daten.monatsHistory.push({ ...daten.aktuellerMonat });
             }
-            // Neuer Monat beginnt bei 0
+            // Neuer Monat beginnt bei 0 und addiert die aktuelle Differenz
             daten.aktuellerMonat = {
                 key: monatsKey,
                 wert: differenz,
@@ -153,6 +159,9 @@ module.exports = function(RED) {
             };
         } else {
             // Gleicher Monat - Differenz hinzuaddieren
+            if (daten.aktuellerMonat.wert === undefined) {
+                daten.aktuellerMonat.wert = 0;
+            }
             daten.aktuellerMonat.wert += differenz;
             daten.aktuellerMonat.zeitstempel = timestamp;
         }
@@ -164,7 +173,7 @@ module.exports = function(RED) {
             if (daten.aktuellesJahr.key) {
                 daten.jahresHistory.push({ ...daten.aktuellesJahr });
             }
-            // Neues Jahr beginnt bei 0
+            // Neues Jahr beginnt bei 0 und addiert die aktuelle Differenz
             daten.aktuellesJahr = {
                 key: jahresKey,
                 wert: differenz,
@@ -172,6 +181,9 @@ module.exports = function(RED) {
             };
         } else {
             // Gleiches Jahr - Differenz hinzuaddieren
+            if (daten.aktuellesJahr.wert === undefined) {
+                daten.aktuellesJahr.wert = 0;
+            }
             daten.aktuellesJahr.wert += differenz;
             daten.aktuellesJahr.zeitstempel = timestamp;
         }
@@ -264,7 +276,7 @@ module.exports = function(RED) {
                         if (nextZeitMatch) eintrag.zeitstempel = nextZeitMatch[1].trim();
                     }
                     
-                    if (eintrag.key && eintrag.wert) {
+                    if (eintrag.key && eintrag.wert !== undefined) {
                         daten[aktuellerBereich].push(eintrag);
                     }
                 }
@@ -272,10 +284,10 @@ module.exports = function(RED) {
                 if (keyMatch && !daten[aktuellerBereich].key) {
                     daten[aktuellerBereich].key = keyMatch[1].trim();
                 }
-                if (wertMatch) {
+                if (wertMatch && daten[aktuellerBereich].wert === undefined) {
                     daten[aktuellerBereich].wert = parseFloat(wertMatch[1]);
                 }
-                if (zeitMatch) {
+                if (zeitMatch && !daten[aktuellerBereich].zeitstempel) {
                     daten[aktuellerBereich].zeitstempel = zeitMatch[1].trim();
                 }
             }
