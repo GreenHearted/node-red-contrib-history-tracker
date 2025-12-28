@@ -89,10 +89,9 @@ module.exports = function(RED) {
         
         // Debug: Geladene Daten
         if (node) {
-            node.warn(`[DEBUG] Datei existiert: ${fs.existsSync(filepath)}`);
-            node.warn(`[DEBUG] Dateipfad: ${filepath}`);
+            node.log(`[DEBUG] Datei existiert: ${fs.existsSync(filepath)}`);
+            node.log(`[DEBUG] Dateipfad: ${filepath}`);
             node.log(`[DEBUG] Geladener letzterWert: ${JSON.stringify(daten.letzterWert)}`);
-            node.warn(`[DEBUG] Geladener letzterWert: ${JSON.stringify(daten.letzterWert)}`);
         }
         
         // Berechne Differenz zum letzten Wert
@@ -101,20 +100,17 @@ module.exports = function(RED) {
             differenz = wert - daten.letzterWert.wert;
             if (node) {
                 node.log(`[DEBUG] Differenz berechnet: ${wert} - ${daten.letzterWert.wert} = ${differenz}`);
-                node.warn(`[DEBUG] Differenz berechnet: ${wert} - ${daten.letzterWert.wert} = ${differenz}`);
             }
             // Negative Differenzen werden auf 0 gesetzt
             if (differenz < 0) {
                 if (node) {
                     node.log(`[DEBUG] Negative Differenz auf 0 gesetzt`);
-                    node.warn(`[DEBUG] Negative Differenz auf 0 gesetzt`);
                 }
                 differenz = 0;
             }
         } else {
             if (node) {
                 node.log(`[DEBUG] Erster Wert - keine Differenz berechnet`);
-                node.warn(`[DEBUG] Erster Wert - keine Differenz berechnet`);
             }
         }
         
@@ -146,7 +142,6 @@ module.exports = function(RED) {
             daten.aktuelleStunde.wert += differenz;
             if (node) {
                 node.log(`[DEBUG] Stunde: ${alterWert} + ${differenz} = ${daten.aktuelleStunde.wert}`);
-                node.warn(`[DEBUG] Stunde: ${alterWert} + ${differenz} = ${daten.aktuelleStunde.wert}`);
             }
             daten.aktuelleStunde.zeitstempel = timestamp;
         }
