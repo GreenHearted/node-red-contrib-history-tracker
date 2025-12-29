@@ -259,8 +259,8 @@ function parseHistoryFile(content) {
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i].trim();
         
-        // Skip empty lines and separators
-        if (!line || line.startsWith('---') || line.startsWith('Month') || line.startsWith('Year')) continue;
+        // Skip empty lines
+        if (!line) continue;
         
         // Detect section headers
         if (line.startsWith('===')) {
@@ -283,47 +283,32 @@ function parseHistoryFile(content) {
             continue;
         }
         
-        const valueMatch = line.match(/Value:\s*([\d.]+)/);
-        const timeMatch = line.match(/Timestamp:\s*(.+)/);
-        const keyMatch = line.match(/Period:\s*(.+)/);
+        // Parse compact format: T: timestamp  -  P: period  -  V: value unit
+        // For lastValue: T: timestamp  -  V: value unit
+        const compactMatch = line.match(/T:\s*(.+?)\s*-\s*(?:P:\s*(.+?)\s*-\s*)?V:\s*([\d.]+)/);
         
-        if (currentSection === 'monthHistory' || currentSection === 'yearHistory') {
-            if (keyMatch) {
-                const entry = { key: keyMatch[1].trim() };
-                
-                if (i + 1 < lines.length) {
-                    const nextValueMatch = lines[i + 1].match(/Value:\s*([\d.]+)/);
-                    if (nextValueMatch) entry.value = parseFloat(nextValueMatch[1]);
-                }
-                if (i + 2 < lines.length) {
-                    const nextTimeMatch = lines[i + 2].match(/Timestamp:\s*(.+)/);
-                    if (nextTimeMatch) entry.timestamp = nextTimeMatch[1].trim();
-                }
-                
-                if (entry.key && entry.value !== undefined) {
-                    data[currentSection].push(entry);
-                }
-            }
-        } else if (currentSection) {
-            // For lastValue there is no period, only value and timestamp
-            if (currentSection === 'lastValue') {
-                if (valueMatch && data[currentSection].value === undefined) {
-                    data[currentSection].value = parseFloat(valueMatch[1]);
-                }
-                if (timeMatch && !data[currentSection].timestamp) {
-                    data[currentSection].timestamp = timeMatch[1].trim();
-                }
+        if (compactMatch && currentSection) {
+            const timestamp = compactMatch[1].trim();
+            const period = compactMatch[2] ? compactMatch[2].trim() : null;
+            const value = parseFloat(compactMatch[3]);
+            
+            if (currentSection === 'monthHistory' || currentSection === 'yearHistory') {
+                data[currentSection].push({
+                    key: period,
+                    value: value,
+                    timestamp: timestamp
+                });
+            } else if (currentSection === 'lastValue') {
+                data[currentSection] = {
+                    value: value,
+                    timestamp: timestamp
+                };
             } else {
-                // For other sections: period, value and timestamp
-                if (keyMatch && !data[currentSection].key) {
-                    data[currentSection].key = keyMatch[1].trim();
-                }
-                if (valueMatch && data[currentSection].value === undefined) {
-                    data[currentSection].value = parseFloat(valueMatch[1]);
-                }
-                if (timeMatch && !data[currentSection].timestamp) {
-                    data[currentSection].timestamp = timeMatch[1].trim();
-                }
+                data[currentSection] = {
+                    key: period,
+                    value: value,
+                    timestamp: timestamp
+                };
             }
         }
     }
@@ -338,95 +323,74 @@ function saveData(filepath, data, unit) {
     content += '  LAST VALUE\n';
     content += '='.repeat(60) + '\n';
     if (data.lastValue.value !== undefined) {
-        content += `Value: ${data.lastValue.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.lastValue.timestamp}\n`;
+        content += `T: ${data.lastValue.timestamp}  -  V: ${data.lastValue.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  CURRENT HOUR\n';
     content += '='.repeat(60) + '\n';
     if (data.currentHour.key) {
-        content += `Period: ${data.currentHour.key}\n`;
-        content += `Value: ${data.currentHour.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.currentHour.timestamp}\n`;
+        content += `T: ${data.currentHour.timestamp}  -  P: ${data.currentHour.key}  -  V: ${data.currentHour.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  LAST HOUR\n';
     content += '='.repeat(60) + '\n';
     if (data.lastHour.key) {
-        content += `Period: ${data.lastHour.key}\n`;
-        content += `Value: ${data.lastHour.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.lastHour.timestamp}\n`;
+        content += `T: ${data.lastHour.timestamp}  -  P: ${data.lastHour.key}  -  V: ${data.lastHour.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  CURRENT DAY\n';
     content += '='.repeat(60) + '\n';
     if (data.currentDay.key) {
-        content += `Period: ${data.currentDay.key}\n`;
-        content += `Value: ${data.currentDay.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.currentDay.timestamp}\n`;
+        content += `T: ${data.currentDay.timestamp}  -  P: ${data.currentDay.key}  -  V: ${data.currentDay.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  LAST DAY\n';
     content += '='.repeat(60) + '\n';
     if (data.lastDay.key) {
-        content += `Period: ${data.lastDay.key}\n`;
-        content += `Value: ${data.lastDay.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.lastDay.timestamp}\n`;
+        content += `T: ${data.lastDay.timestamp}  -  P: ${data.lastDay.key}  -  V: ${data.lastDay.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  CURRENT MONTH\n';
     content += '='.repeat(60) + '\n';
     if (data.currentMonth.key) {
-        content += `Period: ${data.currentMonth.key}\n`;
-        content += `Value: ${data.currentMonth.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.currentMonth.timestamp}\n`;
+        content += `T: ${data.currentMonth.timestamp}  -  P: ${data.currentMonth.key}  -  V: ${data.currentMonth.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  MONTH HISTORY (All past months)\n';
     content += '='.repeat(60) + '\n';
     if (data.monthHistory.length > 0) {
-        data.monthHistory.forEach((month, index) => {
-            content += `\nMonth ${index + 1}:\n`;
-            content += `Period: ${month.key}\n`;
-            content += `Value: ${month.value.toFixed(2)} ${unit}\n`;
-            content += `Timestamp: ${month.timestamp}\n`;
-            content += '-'.repeat(40) + '\n';
+        data.monthHistory.forEach((month) => {
+            content += `T: ${month.timestamp}  -  P: ${month.key}  -  V: ${month.value.toFixed(2)} ${unit}\n`;
         });
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  CURRENT YEAR\n';
     content += '='.repeat(60) + '\n';
     if (data.currentYear.key) {
-        content += `Period: ${data.currentYear.key}\n`;
-        content += `Value: ${data.currentYear.value.toFixed(2)} ${unit}\n`;
-        content += `Timestamp: ${data.currentYear.timestamp}\n`;
+        content += `T: ${data.currentYear.timestamp}  -  P: ${data.currentYear.key}  -  V: ${data.currentYear.value.toFixed(2)} ${unit}\n`;
     }
-    content += '\n';
+    content += '\n\n';
     
     content += '='.repeat(60) + '\n';
     content += '  YEAR HISTORY (All past years)\n';
     content += '='.repeat(60) + '\n';
     if (data.yearHistory.length > 0) {
-        data.yearHistory.forEach((year, index) => {
-            content += `\nYear ${index + 1}:\n`;
-            content += `Period: ${year.key}\n`;
-            content += `Value: ${year.value.toFixed(2)} ${unit}\n`;
-            content += `Timestamp: ${year.timestamp}\n`;
-            content += '-'.repeat(40) + '\n';
+        data.yearHistory.forEach((year) => {
+            content += `T: ${year.timestamp}  -  P: ${year.key}  -  V: ${year.value.toFixed(2)} ${unit}\n`;
         });
     }
     

@@ -37,36 +37,31 @@ function testParseHistoryFile() {
     const sampleContent = `============================================================
   LAST VALUE
 ============================================================
-Value: 123.45 Liter
-Timestamp: 01.01.2024, 10:30:00
+T: 01.01.2024, 10:30:00  -  V: 123.45 Liter
+
 
 ============================================================
   CURRENT HOUR
 ============================================================
-Period: 2024-01-01_10
-Value: 5.50 Liter
-Timestamp: 01.01.2024, 10:30:00
+T: 01.01.2024, 10:30:00  -  P: 2024-01-01_10  -  V: 5.50 Liter
+
 
 ============================================================
   CURRENT DAY
 ============================================================
-Period: 2024-01-01
-Value: 25.75 Liter
-Timestamp: 01.01.2024, 10:30:00
+T: 01.01.2024, 10:30:00  -  P: 2024-01-01  -  V: 25.75 Liter
+
 
 ============================================================
   CURRENT MONTH
 ============================================================
-Period: 2024-01
-Value: 100.00 Liter
-Timestamp: 01.01.2024, 10:30:00
+T: 01.01.2024, 10:30:00  -  P: 2024-01  -  V: 100.00 Liter
+
 
 ============================================================
   CURRENT YEAR
 ============================================================
-Period: 2024
-Value: 100.00 Liter
-Timestamp: 01.01.2024, 10:30:00
+T: 01.01.2024, 10:30:00  -  P: 2024  -  V: 100.00 Liter
 `;
 
     const result = HistoryTrackerUtils.parseHistoryFile(sampleContent);
@@ -136,7 +131,7 @@ function testSaveData() {
         
         const fileExists = fs.existsSync(TEST_FILE);
         const content = fileExists ? fs.readFileSync(TEST_FILE, 'utf8') : '';
-        const containsLastValue = content.includes('Value: 50.00 Liter');
+        const containsLastValue = content.includes('V: 50.00 Liter');
         const containsCurrentHour = content.includes('2024-01-01_12');
         
         const passed = fileExists && containsLastValue && containsCurrentHour;
@@ -315,34 +310,20 @@ function testParseHistoryFileWithHistory() {
     const sampleContent = `============================================================
   LAST VALUE
 ============================================================
-Value: 200.00 Liter
-Timestamp: 01.02.2024, 10:00:00
+T: 01.02.2024, 10:00:00  -  V: 200.00 Liter
+
 
 ============================================================
   MONTH HISTORY (All past months)
 ============================================================
+T: 31.01.2024, 23:59:59  -  P: 2024-01  -  V: 150.00 Liter
+T: 31.12.2023, 23:59:59  -  P: 2023-12  -  V: 180.00 Liter
 
-Month 1:
-Period: 2024-01
-Value: 150.00 Liter
-Timestamp: 31.01.2024, 23:59:59
-----------------------------------------
-
-Month 2:
-Period: 2023-12
-Value: 180.00 Liter
-Timestamp: 31.12.2023, 23:59:59
-----------------------------------------
 
 ============================================================
   YEAR HISTORY (All past years)
 ============================================================
-
-Year 1:
-Period: 2023
-Value: 1200.00 Liter
-Timestamp: 31.12.2023, 23:59:59
-----------------------------------------
+T: 31.12.2023, 23:59:59  -  P: 2023  -  V: 1200.00 Liter
 `;
 
     const result = HistoryTrackerUtils.parseHistoryFile(sampleContent);
@@ -371,7 +352,7 @@ Timestamp: 31.12.2023, 23:59:59
 function runAllTests() {
     console.log('\n');
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║         HISTORY TRACKER FUNCTION TESTS                    ║');
+    console.log('║         HISTORY TRACKER FUNCTION TESTS                     ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
     console.log('\n');
     
