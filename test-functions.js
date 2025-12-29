@@ -117,7 +117,7 @@ function testSaveData() {
     const testData = {
         lastValue: { value: 50.00, timestamp: '01.01.2024, 12:00:00' },
         currentHour: { key: '2024-01-01_12', value: 2.50, timestamp: '01.01.2024, 12:00:00' },
-        lastHour: {},
+        hourHistory: [],
         currentDay: { key: '2024-01-01', value: 10.00, timestamp: '01.01.2024, 12:00:00' },
         lastDay: {},
         currentMonth: { key: '2024-01', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
@@ -160,7 +160,9 @@ function testSaveAndLoadRoundtrip() {
     const originalData = {
         lastValue: { value: 75.25, timestamp: '01.01.2024, 15:00:00' },
         currentHour: { key: '2024-01-01_15', value: 3.75, timestamp: '01.01.2024, 15:00:00' },
-        lastHour: { key: '2024-01-01_14', value: 5.00, timestamp: '01.01.2024, 14:59:59' },
+        hourHistory: [
+            { key: '2024-01-01_14', value: 5.00, timestamp: '01.01.2024, 14:59:59' }
+        ],
         currentDay: { key: '2024-01-01', value: 20.50, timestamp: '01.01.2024, 15:00:00' },
         lastDay: {},
         currentMonth: { key: '2024-01', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
@@ -183,7 +185,8 @@ function testSaveAndLoadRoundtrip() {
         const passed = 
             loadedData.lastValue.value === 75.25 &&
             loadedData.currentHour.value === 3.75 &&
-            loadedData.lastHour.value === 5.00 &&
+            loadedData.hourHistory.length === 1 &&
+            loadedData.hourHistory[0].value === 5.00 &&
             loadedData.monthHistory.length === 1 &&
             loadedData.monthHistory[0].value === 150.00 &&
             loadedData.yearHistory.length === 1 &&

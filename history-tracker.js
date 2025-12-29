@@ -119,7 +119,7 @@ function saveValue(filepath, value, unit) {
     if (data.currentHour.key !== hourKey) {
         // New hour - move old hour to history
         if (data.currentHour.key) {
-            data.lastHour = { ...data.currentHour };
+            data.hourHistory.push({ ...data.currentHour });
         }
         // New hour starts at 0 and adds current difference
         data.currentHour = {
@@ -211,7 +211,7 @@ function loadData(filepath) {
         return {
             lastValue: {},
             currentHour: {},
-            lastHour: {},
+            hourHistory: [],
             currentDay: {},
             lastDay: {},
             currentMonth: {},
@@ -228,7 +228,7 @@ function loadData(filepath) {
         return {
             lastValue: {},
             currentHour: {},
-            lastHour: {},
+            hourHistory: [],
             currentDay: {},
             lastDay: {},
             currentMonth: {},
@@ -243,7 +243,7 @@ function parseHistoryFile(content) {
     const data = {
         lastValue: {},
         currentHour: {},
-        lastHour: {},
+        hourHistory: [],
         currentDay: {},
         lastDay: {},
         currentMonth: {},
@@ -273,7 +273,7 @@ function parseHistoryFile(content) {
         if (sectionFound) {
             if (line.includes('LAST VALUE')) currentSection = 'lastValue';
             else if (line.includes('CURRENT HOUR')) currentSection = 'currentHour';
-            else if (line.includes('LAST HOUR')) currentSection = 'lastHour';
+            else if (line.includes('HOUR HISTORY')) currentSection = 'hourHistory';
             else if (line.includes('CURRENT DAY')) currentSection = 'currentDay';
             else if (line.includes('LAST DAY')) currentSection = 'lastDay';
             else if (line.includes('CURRENT MONTH')) currentSection = 'currentMonth';
@@ -292,7 +292,7 @@ function parseHistoryFile(content) {
             const period = compactMatch[2] ? compactMatch[2].trim() : null;
             const value = parseFloat(compactMatch[3]);
             
-            if (currentSection === 'monthHistory' || currentSection === 'yearHistory') {
+            if (currentSection === 'hourHistory' || currentSection === 'monthHistory' || currentSection === 'yearHistory') {
                 data[currentSection].push({
                     key: period,
                     value: value,
@@ -336,10 +336,12 @@ function saveData(filepath, data, unit) {
     content += '\n\n';
     
     content += '='.repeat(60) + '\n';
-    content += '  LAST HOUR\n';
+    content += '  HOUR HISTORY (Last 24 hours)\n';
     content += '='.repeat(60) + '\n';
-    if (data.lastHour.key) {
-        content += `T: ${data.lastHour.timestamp}  -  P: ${data.lastHour.key}  -  V: ${data.lastHour.value.toFixed(2)} ${unit}\n`;
+    if (data.hourHistory && data.hourHistory.length > 0) {
+        data.hourHistory.forEach((hour) => {
+            content += `T: ${hour.timestamp}  -  P: ${hour.key}  -  V: ${hour.value.toFixed(2)} ${unit}\n`;
+        });
     }
     content += '\n\n';
     
