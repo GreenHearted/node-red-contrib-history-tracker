@@ -117,9 +117,9 @@ function saveValue(filepath, value, unit) {
     const hourKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}_${String(currentHour).padStart(2, '0')}`;
     
     if (data.currentHour.key !== hourKey) {
-        // New hour - move old hour to history
+        // New hour - move old hour to history (at the beginning for newest first)
         if (data.currentHour.key) {
-            data.hourHistory.push({ ...data.currentHour });
+            data.hourHistory.unshift({ ...data.currentHour });
         }
         // New hour starts at 0 and adds current difference
         data.currentHour = {
@@ -161,9 +161,9 @@ function saveValue(filepath, value, unit) {
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     
     if (data.currentMonth.key !== monthKey) {
-        // New month - move old month to history
+        // New month - move old month to history (at the beginning for newest first)
         if (data.currentMonth.key) {
-            data.monthHistory.push({ ...data.currentMonth });
+            data.monthHistory.unshift({ ...data.currentMonth });
         }
         // New month starts at 0 and adds current difference
         data.currentMonth = {
@@ -183,9 +183,9 @@ function saveValue(filepath, value, unit) {
     const yearKey = `${currentYear}`;
     
     if (data.currentYear.key !== yearKey) {
-        // New year - move old year to history
+        // New year - move old year to history (at the beginning for newest first)
         if (data.currentYear.key) {
-            data.yearHistory.push({ ...data.currentYear });
+            data.yearHistory.unshift({ ...data.currentYear });
         }
         // New year starts at 0 and adds current difference
         data.currentYear = {
@@ -336,7 +336,7 @@ function saveData(filepath, data, unit) {
     content += '\n\n';
     
     content += '='.repeat(60) + '\n';
-    content += '  HOUR HISTORY (Last 24 hours)\n';
+    content += '  HOUR HISTORY (All past hours)\n';
     content += '='.repeat(60) + '\n';
     if (data.hourHistory && data.hourHistory.length > 0) {
         data.hourHistory.forEach((hour) => {
