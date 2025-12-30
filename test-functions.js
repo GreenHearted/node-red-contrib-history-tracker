@@ -119,7 +119,7 @@ function testSaveData() {
         currentHour: { key: '2024-01-01_12', value: 2.50, timestamp: '01.01.2024, 12:00:00' },
         hourHistory: [],
         currentDay: { key: '2024-01-01', value: 10.00, timestamp: '01.01.2024, 12:00:00' },
-        lastDay: {},
+        dayHistory: [],
         currentMonth: { key: '2024-01', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
         monthHistory: [],
         currentYear: { key: '2024', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
@@ -164,7 +164,7 @@ function testSaveAndLoadRoundtrip() {
             { key: '2024-01-01_14', value: 5.00, timestamp: '01.01.2024, 14:59:59' }
         ],
         currentDay: { key: '2024-01-01', value: 20.50, timestamp: '01.01.2024, 15:00:00' },
-        lastDay: {},
+        dayHistory: [],
         currentMonth: { key: '2024-01', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
         monthHistory: [
             { key: '2023-12', value: 150.00, timestamp: '31.12.2023, 23:59:59' }
@@ -367,7 +367,7 @@ function testHistoryOrdering() {
                 { key: '2024-01-01_08', value: 12.00, timestamp: '01.01.2024, 08:59:59' }
             ],
             currentDay: { key: '2024-01-01', value: 37.00, timestamp: '01.01.2024, 10:30:00' },
-            lastDay: {},
+            dayHistory: [],
             currentMonth: { key: '2024-01', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
             monthHistory: [
                 { key: '2023-12', value: 250.00, timestamp: '31.12.2023, 23:59:59' },

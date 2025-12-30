@@ -139,9 +139,9 @@ function saveValue(filepath, value, unit) {
     const dayKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
     
     if (data.currentDay.key !== dayKey) {
-        // New day - move old day to history
+        // New day - move old day to history (at the beginning for newest first)
         if (data.currentDay.key) {
-            data.lastDay = { ...data.currentDay };
+            data.dayHistory.unshift({ ...data.currentDay });
         }
         // New day starts at 0 and adds current difference
         data.currentDay = {
@@ -213,7 +213,7 @@ function loadData(filepath) {
             currentHour: {},
             hourHistory: [],
             currentDay: {},
-            lastDay: {},
+            dayHistory: [],
             currentMonth: {},
             monthHistory: [],
             currentYear: {},
@@ -230,7 +230,7 @@ function loadData(filepath) {
             currentHour: {},
             hourHistory: [],
             currentDay: {},
-            lastDay: {},
+            dayHistory: [],
             currentMonth: {},
             monthHistory: [],
             currentYear: {},
@@ -245,7 +245,7 @@ function parseHistoryFile(content) {
         currentHour: {},
         hourHistory: [],
         currentDay: {},
-        lastDay: {},
+        dayHistory: [],
         currentMonth: {},
         monthHistory: [],
         currentYear: {},
@@ -275,7 +275,7 @@ function parseHistoryFile(content) {
             else if (line.includes('CURRENT HOUR')) currentSection = 'currentHour';
             else if (line.includes('HOUR HISTORY')) currentSection = 'hourHistory';
             else if (line.includes('CURRENT DAY')) currentSection = 'currentDay';
-            else if (line.includes('LAST DAY')) currentSection = 'lastDay';
+            else if (line.includes('DAY HISTORY')) currentSection = 'dayHistory';
             else if (line.includes('CURRENT MONTH')) currentSection = 'currentMonth';
             else if (line.includes('MONTH HISTORY')) currentSection = 'monthHistory';
             else if (line.includes('CURRENT YEAR')) currentSection = 'currentYear';
@@ -292,7 +292,7 @@ function parseHistoryFile(content) {
             const period = compactMatch[2] ? compactMatch[2].trim() : null;
             const value = parseFloat(compactMatch[3]);
             
-            if (currentSection === 'hourHistory' || currentSection === 'monthHistory' || currentSection === 'yearHistory') {
+            if (currentSection === 'hourHistory' || currentSection === 'dayHistory' || currentSection === 'monthHistory' || currentSection === 'yearHistory') {
                 data[currentSection].push({
                     key: period,
                     value: value,
@@ -354,10 +354,12 @@ function saveData(filepath, data, unit) {
     content += '\n\n';
     
     content += '='.repeat(60) + '\n';
-    content += '  LAST DAY\n';
+    content += '  DAY HISTORY (All past days)\n';
     content += '='.repeat(60) + '\n';
-    if (data.lastDay.key) {
-        content += `T: ${data.lastDay.timestamp}  -  P: ${data.lastDay.key}  -  V: ${data.lastDay.value.toFixed(2)} ${unit}\n`;
+    if (data.dayHistory && data.dayHistory.length > 0) {
+        data.dayHistory.forEach((day) => {
+            content += `T: ${day.timestamp}  -  P: ${day.key}  -  V: ${day.value.toFixed(2)} ${unit}\n`;
+        });
     }
     content += '\n\n';
     
