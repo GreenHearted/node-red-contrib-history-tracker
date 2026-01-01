@@ -116,13 +116,13 @@ function testSaveData() {
     
     const testData = {
         lastValue: { value: 50.00, timestamp: '01.01.2024, 12:00:00' },
-        currentHour: { key: '2024-01-01_12', value: 2.50, timestamp: '01.01.2024, 12:00:00' },
+        currentHour: { period: '2024-01-01_12', value: 2.50, timestamp: '01.01.2024, 12:00:00' },
         hourHistory: [],
-        currentDay: { key: '2024-01-01', value: 10.00, timestamp: '01.01.2024, 12:00:00' },
+        currentDay: { period: '2024-01-01', value: 10.00, timestamp: '01.01.2024, 12:00:00' },
         dayHistory: [],
-        currentMonth: { key: '2024-01', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
+        currentMonth: { period: '2024-01', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
         monthHistory: [],
-        currentYear: { key: '2024', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
+        currentYear: { period: '2024', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
         yearHistory: []
     };
     
@@ -159,19 +159,19 @@ function testSaveAndLoadRoundtrip() {
     
     const originalData = {
         lastValue: { value: 75.25, timestamp: '01.01.2024, 15:00:00' },
-        currentHour: { key: '2024-01-01_15', value: 3.75, timestamp: '01.01.2024, 15:00:00' },
+        currentHour: { period: '2024-01-01_15', value: 3.75, timestamp: '01.01.2024, 15:00:00' },
         hourHistory: [
-            { key: '2024-01-01_14', value: 5.00, timestamp: '01.01.2024, 14:59:59' }
+            { period: '2024-01-01_14', value: 5.00, timestamp: '01.01.2024, 14:59:59' }
         ],
-        currentDay: { key: '2024-01-01', value: 20.50, timestamp: '01.01.2024, 15:00:00' },
+        currentDay: { period: '2024-01-01', value: 20.50, timestamp: '01.01.2024, 15:00:00' },
         dayHistory: [],
-        currentMonth: { key: '2024-01', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
+        currentMonth: { period: '2024-01', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
         monthHistory: [
-            { key: '2023-12', value: 150.00, timestamp: '31.12.2023, 23:59:59' }
+            { period: '2023-12', value: 150.00, timestamp: '31.12.2023, 23:59:59' }
         ],
-        currentYear: { key: '2024', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
+        currentYear: { period: '2024', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
         yearHistory: [
-            { key: '2023', value: 500.00, timestamp: '31.12.2023, 23:59:59' }
+            { period: '2023', value: 500.00, timestamp: '31.12.2023, 23:59:59' }
         ]
     };
     
@@ -334,9 +334,9 @@ T: 31.12.2023, 23:59:59  -  P: 2023  -  V: 1200.00 Liter
     const passed = 
         result.lastValue.value === 200.00 &&
         result.monthHistory.length === 2 &&
-        result.monthHistory[0].key === '2024-01' &&
+        result.monthHistory[0].period === '2024-01' &&
         result.monthHistory[0].value === 150.00 &&
-        result.monthHistory[1].key === '2023-12' &&
+        result.monthHistory[1].period === '2023-12' &&
         result.yearHistory.length === 1 &&
         result.yearHistory[0].value === 1200.00;
     
@@ -361,19 +361,19 @@ function testHistoryOrdering() {
         // Create initial data with existing hour and month history (oldest entries)
         const initialData = {
             lastValue: { value: 50.00, timestamp: '01.01.2024, 10:00:00' },
-            currentHour: { key: '2024-01-01_10', value: 10.00, timestamp: '01.01.2024, 10:30:00' },
+            currentHour: { period: '2024-01-01_10', value: 10.00, timestamp: '01.01.2024, 10:30:00' },
             hourHistory: [
-                { key: '2024-01-01_09', value: 15.00, timestamp: '01.01.2024, 09:59:59' },
-                { key: '2024-01-01_08', value: 12.00, timestamp: '01.01.2024, 08:59:59' }
+                { period: '2024-01-01_09', value: 15.00, timestamp: '01.01.2024, 09:59:59' },
+                { period: '2024-01-01_08', value: 12.00, timestamp: '01.01.2024, 08:59:59' }
             ],
-            currentDay: { key: '2024-01-01', value: 37.00, timestamp: '01.01.2024, 10:30:00' },
+            currentDay: { period: '2024-01-01', value: 37.00, timestamp: '01.01.2024, 10:30:00' },
             dayHistory: [],
-            currentMonth: { key: '2024-01', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
+            currentMonth: { period: '2024-01', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
             monthHistory: [
-                { key: '2023-12', value: 250.00, timestamp: '31.12.2023, 23:59:59' },
-                { key: '2023-11', value: 220.00, timestamp: '30.11.2023, 23:59:59' }
+                { period: '2023-12', value: 250.00, timestamp: '31.12.2023, 23:59:59' },
+                { period: '2023-11', value: 220.00, timestamp: '30.11.2023, 23:59:59' }
             ],
-            currentYear: { key: '2024', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
+            currentYear: { period: '2024', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
             yearHistory: []
         };
         
@@ -384,11 +384,11 @@ function testHistoryOrdering() {
         // Now simulate a new hour by modifying the data
         // In real scenario, saveValue would do unshift to add newest hour at position 0
         loadedData.hourHistory.unshift(loadedData.currentHour);
-        loadedData.currentHour = { key: '2024-01-01_11', value: 8.00, timestamp: '01.01.2024, 11:30:00' };
+        loadedData.currentHour = { period: '2024-01-01_11', value: 8.00, timestamp: '01.01.2024, 11:30:00' };
         
         // Simulate a new month
         loadedData.monthHistory.unshift(loadedData.currentMonth);
-        loadedData.currentMonth = { key: '2024-02', value: 50.00, timestamp: '01.02.2024, 10:00:00' };
+        loadedData.currentMonth = { period: '2024-02', value: 50.00, timestamp: '01.02.2024, 10:00:00' };
         
         // Save the updated data
         HistoryTrackerUtils.saveData(TEST_FILE, loadedData, 'Liter');
@@ -397,23 +397,23 @@ function testHistoryOrdering() {
         // Verify hour history ordering (newest first)
         const hourOrderCorrect = 
             finalData.hourHistory.length === 3 &&
-            finalData.hourHistory[0].key === '2024-01-01_10' &&  // Most recent (was currentHour)
-            finalData.hourHistory[1].key === '2024-01-01_09' &&  // Second most recent
-            finalData.hourHistory[2].key === '2024-01-01_08';    // Oldest
+            finalData.hourHistory[0].period === '2024-01-01_10' &&  // Most recent (was currentHour)
+            finalData.hourHistory[1].period === '2024-01-01_09' &&  // Second most recent
+            finalData.hourHistory[2].period === '2024-01-01_08';    // Oldest
         
         // Verify month history ordering (newest first)
         const monthOrderCorrect = 
             finalData.monthHistory.length === 3 &&
-            finalData.monthHistory[0].key === '2024-01' &&       // Most recent (was currentMonth)
-            finalData.monthHistory[1].key === '2023-12' &&       // Second most recent
-            finalData.monthHistory[2].key === '2023-11';         // Oldest
+            finalData.monthHistory[0].period === '2024-01' &&       // Most recent (was currentMonth)
+            finalData.monthHistory[1].period === '2023-12' &&       // Second most recent
+            finalData.monthHistory[2].period === '2023-11';         // Oldest
         
         const passed = hourOrderCorrect && monthOrderCorrect;
         
         let details = '';
         if (!passed) {
-            details = `Hour history: ${JSON.stringify(finalData.hourHistory.map(h => h.key))}, `;
-            details += `Month history: ${JSON.stringify(finalData.monthHistory.map(m => m.key))}`;
+            details = `Hour history: ${JSON.stringify(finalData.hourHistory.map(h => h.period))}, `;
+            details += `Month history: ${JSON.stringify(finalData.monthHistory.map(m => m.period))}`;
         } else {
             details = 'Hour and month history correctly ordered (newest first)';
         }

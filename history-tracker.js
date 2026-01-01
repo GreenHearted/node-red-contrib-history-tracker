@@ -18,8 +18,15 @@ module.exports = function(RED) {
         const node = this;
         
         // Configuration from editor
-        node.filename = config.filename || 'history.txt';
-        node.filepath = config.filepath || path.join(RED.settings.userDir, node.filename);
+        const configPath = config.filepath || 'history.txt';
+        
+        // If filepath contains no directory separators, use userDir as base
+        if (configPath.indexOf(path.sep) === -1 && configPath.indexOf('/') === -1) {
+            node.filepath = path.join(RED.settings.userDir, configPath);
+        } else {
+            node.filepath = configPath;
+        }
+        
         node.valueField = config.valueField || 'payload';
         node.outputMode = config.outputMode || 'none'; // none, last, current, all
         node.unit = config.unit || 'Liter';
@@ -111,21 +118,23 @@ function saveValue(filepath, value, unit) {
     // Update last value
     data.lastValue = {
         value: value,
-        timestamp: timestamp
+        timestamp: timestamp,
+        timestampMs: now.getTime()
     };
     
     const hourKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}_${String(currentHour).padStart(2, '0')}`;
     
-    if (data.currentHour.key !== hourKey) {
+    if (data.currentHour.period !== hourKey) {
         // New hour - move old hour to history (at the beginning for newest first)
-        if (data.currentHour.key) {
+        if (data.currentHour.period) {
             data.hourHistory.unshift({ ...data.currentHour });
         }
         // New hour starts at 0 and adds current difference
         data.currentHour = {
-            key: hourKey,
+            period: hourKey,
             value: difference,
-            timestamp: timestamp
+            timestamp: timestamp,
+            timestampMs: now.getTime()
         };
     } else {
         // Same hour - add difference
@@ -134,20 +143,22 @@ function saveValue(filepath, value, unit) {
         }
         data.currentHour.value += difference;
         data.currentHour.timestamp = timestamp;
+        data.currentHour.timestampMs = now.getTime();
     }
     
     const dayKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
     
-    if (data.currentDay.key !== dayKey) {
+    if (data.currentDay.period !== dayKey) {
         // New day - move old day to history (at the beginning for newest first)
-        if (data.currentDay.key) {
+        if (data.currentDay.period) {
             data.dayHistory.unshift({ ...data.currentDay });
         }
         // New day starts at 0 and adds current difference
         data.currentDay = {
-            key: dayKey,
+            period: dayKey,
             value: difference,
-            timestamp: timestamp
+            timestamp: timestamp,
+            timestampMs: now.getTime()
         };
     } else {
         // Same day - add difference
@@ -156,20 +167,22 @@ function saveValue(filepath, value, unit) {
         }
         data.currentDay.value += difference;
         data.currentDay.timestamp = timestamp;
+        data.currentDay.timestampMs = now.getTime();
     }
     
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     
-    if (data.currentMonth.key !== monthKey) {
+    if (data.currentMonth.period !== monthKey) {
         // New month - move old month to history (at the beginning for newest first)
-        if (data.currentMonth.key) {
+        if (data.currentMonth.period) {
             data.monthHistory.unshift({ ...data.currentMonth });
         }
         // New month starts at 0 and adds current difference
         data.currentMonth = {
-            key: monthKey,
+            period: monthKey,
             value: difference,
-            timestamp: timestamp
+            timestamp: timestamp,
+            timestampMs: now.getTime()
         };
     } else {
         // Same month - add difference
@@ -178,20 +191,22 @@ function saveValue(filepath, value, unit) {
         }
         data.currentMonth.value += difference;
         data.currentMonth.timestamp = timestamp;
+        data.currentMonth.timestampMs = now.getTime();
     }
     
     const yearKey = `${currentYear}`;
     
-    if (data.currentYear.key !== yearKey) {
+    if (data.currentYear.period !== yearKey) {
         // New year - move old year to history (at the beginning for newest first)
-        if (data.currentYear.key) {
+        if (data.currentYear.period) {
             data.yearHistory.unshift({ ...data.currentYear });
         }
         // New year starts at 0 and adds current difference
         data.currentYear = {
-            key: yearKey,
+            period: yearKey,
             value: difference,
-            timestamp: timestamp
+            timestamp: timestamp,
+            timestampMs: now.getTime()
         };
     } else {
         // Same year - add difference
@@ -200,6 +215,7 @@ function saveValue(filepath, value, unit) {
         }
         data.currentYear.value += difference;
         data.currentYear.timestamp = timestamp;
+        data.currentYear.timestampMs = now.getTime();
     }
     
     saveData(filepath, data, unit);
@@ -294,7 +310,7 @@ function parseHistoryFile(content) {
             
             if (currentSection === 'hourHistory' || currentSection === 'dayHistory' || currentSection === 'monthHistory' || currentSection === 'yearHistory') {
                 data[currentSection].push({
-                    key: period,
+                    period: period,
                     value: value,
                     timestamp: timestamp
                 });
@@ -305,7 +321,7 @@ function parseHistoryFile(content) {
                 };
             } else {
                 data[currentSection] = {
-                    key: period,
+                    period: period,
                     value: value,
                     timestamp: timestamp
                 };
@@ -330,8 +346,8 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     content += '  CURRENT HOUR\n';
     content += '='.repeat(60) + '\n';
-    if (data.currentHour.key) {
-        content += `T: ${data.currentHour.timestamp}  -  P: ${data.currentHour.key}  -  V: ${data.currentHour.value.toFixed(2)} ${unit}\n`;
+    if (data.currentHour.period) {
+        content += `T: ${data.currentHour.timestamp}  -  P: ${data.currentHour.period}  -  V: ${data.currentHour.value.toFixed(2)} ${unit}\n`;
     }
     content += '\n\n';
     
@@ -340,7 +356,7 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.hourHistory && data.hourHistory.length > 0) {
         data.hourHistory.forEach((hour) => {
-            content += `T: ${hour.timestamp}  -  P: ${hour.key}  -  V: ${hour.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${hour.timestamp}  -  P: ${hour.period}  -  V: ${hour.value.toFixed(2)} ${unit}\n`;
         });
     }
     content += '\n\n';
@@ -348,8 +364,8 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     content += '  CURRENT DAY\n';
     content += '='.repeat(60) + '\n';
-    if (data.currentDay.key) {
-        content += `T: ${data.currentDay.timestamp}  -  P: ${data.currentDay.key}  -  V: ${data.currentDay.value.toFixed(2)} ${unit}\n`;
+    if (data.currentDay.period) {
+        content += `T: ${data.currentDay.timestamp}  -  P: ${data.currentDay.period}  -  V: ${data.currentDay.value.toFixed(2)} ${unit}\n`;
     }
     content += '\n\n';
     
@@ -358,7 +374,7 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.dayHistory && data.dayHistory.length > 0) {
         data.dayHistory.forEach((day) => {
-            content += `T: ${day.timestamp}  -  P: ${day.key}  -  V: ${day.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${day.timestamp}  -  P: ${day.period}  -  V: ${day.value.toFixed(2)} ${unit}\n`;
         });
     }
     content += '\n\n';
@@ -366,8 +382,8 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     content += '  CURRENT MONTH\n';
     content += '='.repeat(60) + '\n';
-    if (data.currentMonth.key) {
-        content += `T: ${data.currentMonth.timestamp}  -  P: ${data.currentMonth.key}  -  V: ${data.currentMonth.value.toFixed(2)} ${unit}\n`;
+    if (data.currentMonth.period) {
+        content += `T: ${data.currentMonth.timestamp}  -  P: ${data.currentMonth.period}  -  V: ${data.currentMonth.value.toFixed(2)} ${unit}\n`;
     }
     content += '\n\n';
     
@@ -376,7 +392,7 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.monthHistory.length > 0) {
         data.monthHistory.forEach((month) => {
-            content += `T: ${month.timestamp}  -  P: ${month.key}  -  V: ${month.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${month.timestamp}  -  P: ${month.period}  -  V: ${month.value.toFixed(2)} ${unit}\n`;
         });
     }
     content += '\n\n';
@@ -384,8 +400,8 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     content += '  CURRENT YEAR\n';
     content += '='.repeat(60) + '\n';
-    if (data.currentYear.key) {
-        content += `T: ${data.currentYear.timestamp}  -  P: ${data.currentYear.key}  -  V: ${data.currentYear.value.toFixed(2)} ${unit}\n`;
+    if (data.currentYear.period) {
+        content += `T: ${data.currentYear.timestamp}  -  P: ${data.currentYear.period}  -  V: ${data.currentYear.value.toFixed(2)} ${unit}\n`;
     }
     content += '\n\n';
     
@@ -394,7 +410,7 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.yearHistory.length > 0) {
         data.yearHistory.forEach((year) => {
-            content += `T: ${year.timestamp}  -  P: ${year.key}  -  V: ${year.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${year.timestamp}  -  P: ${year.period}  -  V: ${year.value.toFixed(2)} ${unit}\n`;
         });
     }
     

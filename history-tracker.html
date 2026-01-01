@@ -4,8 +4,7 @@
         color: '#3FADB5',
         defaults: {
             name: {value: ""},
-            filename: {value: "history.txt", required: true},
-            filepath: {value: ""},
+            filepath: {value: "history.txt", required: true},
             valueField: {value: "payload"},
             outputMode: {value: "none"},
             unit: {value: "Liter"}
@@ -29,12 +28,12 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-filename"><i class="fa fa-file"></i> Dateiname</label>
-        <input type="text" id="node-input-filename" placeholder="history.txt">
-    </div>
-    <div class="form-row">
-        <label for="node-input-filepath"><i class="fa fa-folder"></i> Dateipfad</label>
-        <input type="text" id="node-input-filepath" placeholder="Leer = userDir">
+        <label for="node-input-filepath"><i class="fa fa-file"></i> Dateipfad</label>
+        <input type="text" id="node-input-filepath" placeholder="history.txt">
+        <div class="form-tips" style="margin-top:5px;">
+            <b>Nur Dateiname:</b> Wird im userDir gespeichert (z.B. "history.txt")<br/>
+            <b>Vollständiger Pfad:</b> Absoluter Pfad zur Datei (z.B. "C:\Daten\history.txt")
+        </div>
     </div>
     <div class="form-row">
         <label for="node-input-valueField"><i class="fa fa-list"></i> Wert-Feld</label>
@@ -60,11 +59,8 @@
     
     <h3>Konfiguration</h3>
     <dl class="message-properties">
-        <dt>Dateiname <span class="property-type">string</span></dt>
-        <dd>Name der Datei zum Speichern der Historie</dd>
-        
         <dt>Dateipfad <span class="property-type">string</span></dt>
-        <dd>Vollständiger Pfad zur Datei (optional, Standard: userDir)</dd>
+        <dd>Pfad zur Datei. Nur Dateiname = userDir, vollständiger Pfad = absoluter Pfad</dd>
         
         <dt>Wert-Feld <span class="property-type">string</span></dt>
         <dd>Name des Feldes in msg, aus dem der Wert gelesen wird (Standard: payload)</dd>
