@@ -8,7 +8,8 @@ const HistoryTrackerUtils = {
     loadData,
     parseHistoryFile,
     saveData,
-    saveValue
+    saveValue,
+    trimHistory
 };
 
 module.exports = function(RED) {
@@ -30,6 +31,12 @@ module.exports = function(RED) {
         node.valueField = config.valueField || 'payload';
         node.outputMode = config.outputMode || 'none'; // none, last, current, all
         node.unit = config.unit || 'Liter';
+        
+        // History limits (0 = unlimited)
+        node.maxHourHistory = parseInt(config.maxHourHistory) || 0;
+        node.maxDayHistory = parseInt(config.maxDayHistory) || 0;
+        node.maxMonthHistory = parseInt(config.maxMonthHistory) || 0;
+        node.maxYearHistory = parseInt(config.maxYearHistory) || 0;
         
         // Set status with version
         node.status({fill: "green", shape: "dot", text: `ready (v${VERSION})`});
@@ -53,6 +60,17 @@ module.exports = function(RED) {
                 
                 // Process the value
                 const data = saveValue(node.filepath, value, node.unit);
+                
+                // Trim history arrays to configured limits
+                trimHistory(data, {
+                    maxHourHistory: node.maxHourHistory,
+                    maxDayHistory: node.maxDayHistory,
+                    maxMonthHistory: node.maxMonthHistory,
+                    maxYearHistory: node.maxYearHistory
+                });
+                
+                // Save trimmed data
+                saveData(node.filepath, data, node.unit);
                 
                 // Update status
                 node.status({
@@ -449,6 +467,28 @@ function saveData(filepath, data, unit) {
     }
     
     fs.writeFileSync(filepath, content, 'utf8');
+}
+
+function trimHistory(data, limits) {
+    // Trim hour history
+    if (limits.maxHourHistory > 0 && data.hourHistory.length > limits.maxHourHistory) {
+        data.hourHistory = data.hourHistory.slice(0, limits.maxHourHistory);
+    }
+    
+    // Trim day history
+    if (limits.maxDayHistory > 0 && data.dayHistory.length > limits.maxDayHistory) {
+        data.dayHistory = data.dayHistory.slice(0, limits.maxDayHistory);
+    }
+    
+    // Trim month history
+    if (limits.maxMonthHistory > 0 && data.monthHistory.length > limits.maxMonthHistory) {
+        data.monthHistory = data.monthHistory.slice(0, limits.maxMonthHistory);
+    }
+    
+    // Trim year history
+    if (limits.maxYearHistory > 0 && data.yearHistory.length > limits.maxYearHistory) {
+        data.yearHistory = data.yearHistory.slice(0, limits.maxYearHistory);
+    }
 }
 
 // Export utility functions for testing (when not used as Node-RED module)

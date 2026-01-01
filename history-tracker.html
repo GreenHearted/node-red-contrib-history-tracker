@@ -7,7 +7,11 @@
             filepath: {value: "history.txt", required: true},
             valueField: {value: "payload"},
             outputMode: {value: "none"},
-            unit: {value: "Liter"}
+            unit: {value: "Liter"},
+            maxHourHistory: {value: 24, validate: RED.validators.number()},
+            maxDayHistory: {value: 31, validate: RED.validators.number()},
+            maxMonthHistory: {value: 12, validate: RED.validators.number()},
+            maxYearHistory: {value: 10, validate: RED.validators.number()}
         },
         inputs: 1,
         outputs: 1,
@@ -52,6 +56,36 @@
             <option value="all">Alle Daten</option>
         </select>
     </div>
+    
+    <div class="form-row">
+        <label style="width: 100%; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 10px;">
+            <i class="fa fa-history"></i> Historie-Limits
+        </label>
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-maxHourHistory"><i class="fa fa-clock-o"></i> Max. Stunden</label>
+        <input type="number" id="node-input-maxHourHistory" placeholder="24" style="width: 100px;">
+        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-maxDayHistory"><i class="fa fa-calendar"></i> Max. Tage</label>
+        <input type="number" id="node-input-maxDayHistory" placeholder="31" style="width: 100px;">
+        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-maxMonthHistory"><i class="fa fa-calendar"></i> Max. Monate</label>
+        <input type="number" id="node-input-maxMonthHistory" placeholder="12" style="width: 100px;">
+        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-maxYearHistory"><i class="fa fa-calendar"></i> Max. Jahre</label>
+        <input type="number" id="node-input-maxYearHistory" placeholder="10" style="width: 100px;">
+        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+    </div>
 </script>
 
 <script type="text/html" data-help-name="history-tracker">
@@ -70,6 +104,9 @@
         
         <dt>Output Modus <span class="property-type">string</span></dt>
         <dd>Bestimmt, welche Daten als Output gesendet werden</dd>
+        
+        <dt>Historie-Limits <span class="property-type">number</span></dt>
+        <dd>Maximale Anzahl der Einträge pro Historie-Typ (0 = unbegrenzt). Älteste Einträge werden automatisch gelöscht.</dd>
     </dl>
 
     <h3>Funktionsweise</h3>
@@ -78,5 +115,6 @@
         <li>Negative Differenzen werden ignoriert (Counter-Reset)</li>
         <li>Beim Periodenwechsel startet die neue Periode bei 0</li>
         <li>Die alte Periode wird in die Historie verschoben</li>
+        <li>Historie wird auf konfigurierte Limits begrenzt (neueste zuerst)</li>
     </ul>
 </script>

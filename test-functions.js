@@ -495,6 +495,159 @@ T: 2023-12-31T23:59:59  -  P: 2023-12  -  V: 150.00 Liter
 }
 
 // ============================================================================
+// TEST 11: trimHistory - Verify history trimming to max limits
+// ============================================================================
+function testTrimHistory() {
+    console.log('=== TEST 11: trimHistory ===');
+    
+    try {
+        // Create test data with more entries than limits
+        const testData = {
+            lastValue: { value: 100.00, timestamp: '2024-01-01T12:00:00' },
+            currentHour: { period: '2024-01-01_12', value: 5.00, timestamp: '2024-01-01T12:00:00' },
+            hourHistory: [
+                { period: '2024-01-01_11', value: 5.00, timestamp: '2024-01-01T11:00:00' },
+                { period: '2024-01-01_10', value: 4.00, timestamp: '2024-01-01T10:00:00' },
+                { period: '2024-01-01_09', value: 3.00, timestamp: '2024-01-01T09:00:00' },
+                { period: '2024-01-01_08', value: 2.00, timestamp: '2024-01-01T08:00:00' },
+                { period: '2024-01-01_07', value: 1.00, timestamp: '2024-01-01T07:00:00' }
+            ],
+            currentDay: { period: '2024-01-01', value: 10.00, timestamp: '2024-01-01T12:00:00' },
+            dayHistory: [
+                { period: '2023-12-31', value: 20.00, timestamp: '2023-12-31T23:59:59' },
+                { period: '2023-12-30', value: 19.00, timestamp: '2023-12-30T23:59:59' },
+                { period: '2023-12-29', value: 18.00, timestamp: '2023-12-29T23:59:59' },
+                { period: '2023-12-28', value: 17.00, timestamp: '2023-12-28T23:59:59' }
+            ],
+            currentMonth: { period: '2024-01', value: 50.00, timestamp: '2024-01-01T12:00:00' },
+            monthHistory: [
+                { period: '2023-12', value: 150.00, timestamp: '2023-12-31T23:59:59' },
+                { period: '2023-11', value: 140.00, timestamp: '2023-11-30T23:59:59' },
+                { period: '2023-10', value: 130.00, timestamp: '2023-10-31T23:59:59' },
+                { period: '2023-09', value: 120.00, timestamp: '2023-09-30T23:59:59' }
+            ],
+            currentYear: { period: '2024', value: 200.00, timestamp: '2024-01-01T12:00:00' },
+            yearHistory: [
+                { period: '2023', value: 1000.00, timestamp: '2023-12-31T23:59:59' },
+                { period: '2022', value: 900.00, timestamp: '2022-12-31T23:59:59' },
+                { period: '2021', value: 800.00, timestamp: '2021-12-31T23:59:59' },
+                { period: '2020', value: 700.00, timestamp: '2020-12-31T23:59:59' }
+            ]
+        };
+        
+        // Set limits
+        const limits = {
+            maxHourHistory: 3,
+            maxDayHistory: 2,
+            maxMonthHistory: 2,
+            maxYearHistory: 2
+        };
+        
+        // Trim history
+        HistoryTrackerUtils.trimHistory(testData, limits);
+        
+        // Verify trimming
+        const hourTrimmed = testData.hourHistory.length === 3 &&
+                           testData.hourHistory[0].period === '2024-01-01_11' &&
+                           testData.hourHistory[2].period === '2024-01-01_09';
+        
+        const dayTrimmed = testData.dayHistory.length === 2 &&
+                          testData.dayHistory[0].period === '2023-12-31' &&
+                          testData.dayHistory[1].period === '2023-12-30';
+        
+        const monthTrimmed = testData.monthHistory.length === 2 &&
+                            testData.monthHistory[0].period === '2023-12' &&
+                            testData.monthHistory[1].period === '2023-11';
+        
+        const yearTrimmed = testData.yearHistory.length === 2 &&
+                           testData.yearHistory[0].period === '2023' &&
+                           testData.yearHistory[1].period === '2022';
+        
+        const passed = hourTrimmed && dayTrimmed && monthTrimmed && yearTrimmed;
+        
+        let details = '';
+        if (!passed) {
+            details = `Hour: ${testData.hourHistory.length} (expected 3), `;
+            details += `Day: ${testData.dayHistory.length} (expected 2), `;
+            details += `Month: ${testData.monthHistory.length} (expected 2), `;
+            details += `Year: ${testData.yearHistory.length} (expected 2)`;
+        } else {
+            details = 'All history arrays correctly trimmed to limits, keeping newest entries';
+        }
+        
+        printTestResult(
+            'trimHistory should limit arrays to max entries (newest first)',
+            passed,
+            details
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('trimHistory should limit arrays correctly', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 12: trimHistory - Zero limit should not trim (unlimited)
+// ============================================================================
+function testTrimHistoryUnlimited() {
+    console.log('=== TEST 12: trimHistory (unlimited) ===');
+    
+    try {
+        const testData = {
+            lastValue: {},
+            currentHour: {},
+            hourHistory: [
+                { period: '2024-01-01_11', value: 5.00 },
+                { period: '2024-01-01_10', value: 4.00 },
+                { period: '2024-01-01_09', value: 3.00 }
+            ],
+            currentDay: {},
+            dayHistory: [],
+            currentMonth: {},
+            monthHistory: [
+                { period: '2023-12', value: 150.00 },
+                { period: '2023-11', value: 140.00 }
+            ],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Set limits to 0 (unlimited)
+        const limits = {
+            maxHourHistory: 0,
+            maxDayHistory: 0,
+            maxMonthHistory: 0,
+            maxYearHistory: 0
+        };
+        
+        // Store original lengths
+        const originalHourLength = testData.hourHistory.length;
+        const originalMonthLength = testData.monthHistory.length;
+        
+        // Trim history (should not trim anything)
+        HistoryTrackerUtils.trimHistory(testData, limits);
+        
+        const passed = 
+            testData.hourHistory.length === originalHourLength &&
+            testData.monthHistory.length === originalMonthLength;
+        
+        printTestResult(
+            'trimHistory with limit 0 should keep all entries (unlimited)',
+            passed,
+            passed ? 'All entries preserved with unlimited limit' : 
+                `Hour: ${testData.hourHistory.length} (expected ${originalHourLength}), Month: ${testData.monthHistory.length} (expected ${originalMonthLength})`
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('trimHistory with unlimited should not trim', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
 // Run all tests
 // ============================================================================
 function runAllTests() {
@@ -516,6 +669,8 @@ function runAllTests() {
     results.push(testParseHistoryFileWithHistory());
     results.push(testHistoryOrdering());
     results.push(testTimestampMsCalculation());
+    results.push(testTrimHistory());
+    results.push(testTrimHistoryUnlimited());
     
     // Cleanup
     cleanupTestFiles();
