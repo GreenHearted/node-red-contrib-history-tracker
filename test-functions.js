@@ -37,31 +37,31 @@ function testParseHistoryFile() {
     const sampleContent = `============================================================
   LAST VALUE
 ============================================================
-T: 01.01.2024, 10:30:00  -  V: 123.45 Liter
+T: 2024-01-01T10:30:00  -  V: 123.45 Liter
 
 
 ============================================================
   CURRENT HOUR
 ============================================================
-T: 01.01.2024, 10:30:00  -  P: 2024-01-01_10  -  V: 5.50 Liter
+T: 2024-01-01T10:30:00  -  P: 2024-01-01_10  -  V: 5.50 Liter
 
 
 ============================================================
   CURRENT DAY
 ============================================================
-T: 01.01.2024, 10:30:00  -  P: 2024-01-01  -  V: 25.75 Liter
+T: 2024-01-01T10:30:00  -  P: 2024-01-01  -  V: 25.75 Liter
 
 
 ============================================================
   CURRENT MONTH
 ============================================================
-T: 01.01.2024, 10:30:00  -  P: 2024-01  -  V: 100.00 Liter
+T: 2024-01-01T10:30:00  -  P: 2024-01  -  V: 100.00 Liter
 
 
 ============================================================
   CURRENT YEAR
 ============================================================
-T: 01.01.2024, 10:30:00  -  P: 2024  -  V: 100.00 Liter
+T: 2024-01-01T10:30:00  -  P: 2024  -  V: 100.00 Liter
 `;
 
     const result = HistoryTrackerUtils.parseHistoryFile(sampleContent);
@@ -115,14 +115,14 @@ function testSaveData() {
     cleanupTestFiles();
     
     const testData = {
-        lastValue: { value: 50.00, timestamp: '01.01.2024, 12:00:00' },
-        currentHour: { period: '2024-01-01_12', value: 2.50, timestamp: '01.01.2024, 12:00:00' },
+        lastValue: { value: 50.00, timestamp: '2024-01-01T12:00:00' },
+        currentHour: { period: '2024-01-01_12', value: 2.50, timestamp: '2024-01-01T12:00:00' },
         hourHistory: [],
-        currentDay: { period: '2024-01-01', value: 10.00, timestamp: '01.01.2024, 12:00:00' },
+        currentDay: { period: '2024-01-01', value: 10.00, timestamp: '2024-01-01T12:00:00' },
         dayHistory: [],
-        currentMonth: { period: '2024-01', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
+        currentMonth: { period: '2024-01', value: 50.00, timestamp: '2024-01-01T12:00:00' },
         monthHistory: [],
-        currentYear: { period: '2024', value: 50.00, timestamp: '01.01.2024, 12:00:00' },
+        currentYear: { period: '2024', value: 50.00, timestamp: '2024-01-01T12:00:00' },
         yearHistory: []
     };
     
@@ -158,20 +158,20 @@ function testSaveAndLoadRoundtrip() {
     cleanupTestFiles();
     
     const originalData = {
-        lastValue: { value: 75.25, timestamp: '01.01.2024, 15:00:00' },
-        currentHour: { period: '2024-01-01_15', value: 3.75, timestamp: '01.01.2024, 15:00:00' },
+        lastValue: { value: 75.25, timestamp: '2024-01-01T15:00:00' },
+        currentHour: { period: '2024-01-01_15', value: 3.75, timestamp: '2024-01-01T15:00:00' },
         hourHistory: [
-            { period: '2024-01-01_14', value: 5.00, timestamp: '01.01.2024, 14:59:59' }
+            { period: '2024-01-01_14', value: 5.00, timestamp: '2024-01-01T14:59:59' }
         ],
-        currentDay: { period: '2024-01-01', value: 20.50, timestamp: '01.01.2024, 15:00:00' },
+        currentDay: { period: '2024-01-01', value: 20.50, timestamp: '2024-01-01T15:00:00' },
         dayHistory: [],
-        currentMonth: { period: '2024-01', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
+        currentMonth: { period: '2024-01', value: 75.25, timestamp: '2024-01-01T15:00:00' },
         monthHistory: [
-            { period: '2023-12', value: 150.00, timestamp: '31.12.2023, 23:59:59' }
+            { period: '2023-12', value: 150.00, timestamp: '2023-12-31T23:59:59' }
         ],
-        currentYear: { period: '2024', value: 75.25, timestamp: '01.01.2024, 15:00:00' },
+        currentYear: { period: '2024', value: 75.25, timestamp: '2024-01-01T15:00:00' },
         yearHistory: [
-            { period: '2023', value: 500.00, timestamp: '31.12.2023, 23:59:59' }
+            { period: '2023', value: 500.00, timestamp: '2023-12-31T23:59:59' }
         ]
     };
     
@@ -313,20 +313,20 @@ function testParseHistoryFileWithHistory() {
     const sampleContent = `============================================================
   LAST VALUE
 ============================================================
-T: 01.02.2024, 10:00:00  -  V: 200.00 Liter
+T: 2024-02-01T10:00:00  -  V: 200.00 Liter
 
 
 ============================================================
   MONTH HISTORY (All past months)
 ============================================================
-T: 31.01.2024, 23:59:59  -  P: 2024-01  -  V: 150.00 Liter
-T: 31.12.2023, 23:59:59  -  P: 2023-12  -  V: 180.00 Liter
+T: 2024-01-31T23:59:59  -  P: 2024-01  -  V: 150.00 Liter
+T: 2023-12-31T23:59:59  -  P: 2023-12  -  V: 180.00 Liter
 
 
 ============================================================
   YEAR HISTORY (All past years)
 ============================================================
-T: 31.12.2023, 23:59:59  -  P: 2023  -  V: 1200.00 Liter
+T: 2023-12-31T23:59:59  -  P: 2023  -  V: 1200.00 Liter
 `;
 
     const result = HistoryTrackerUtils.parseHistoryFile(sampleContent);
@@ -360,20 +360,20 @@ function testHistoryOrdering() {
     try {
         // Create initial data with existing hour and month history (oldest entries)
         const initialData = {
-            lastValue: { value: 50.00, timestamp: '01.01.2024, 10:00:00' },
-            currentHour: { period: '2024-01-01_10', value: 10.00, timestamp: '01.01.2024, 10:30:00' },
+            lastValue: { value: 50.00, timestamp: '2024-01-01T10:00:00' },
+            currentHour: { period: '2024-01-01_10', value: 10.00, timestamp: '2024-01-01T10:30:00' },
             hourHistory: [
-                { period: '2024-01-01_09', value: 15.00, timestamp: '01.01.2024, 09:59:59' },
-                { period: '2024-01-01_08', value: 12.00, timestamp: '01.01.2024, 08:59:59' }
+                { period: '2024-01-01_09', value: 15.00, timestamp: '2024-01-01T09:59:59' },
+                { period: '2024-01-01_08', value: 12.00, timestamp: '2024-01-01T08:59:59' }
             ],
-            currentDay: { period: '2024-01-01', value: 37.00, timestamp: '01.01.2024, 10:30:00' },
+            currentDay: { period: '2024-01-01', value: 37.00, timestamp: '2024-01-01T10:30:00' },
             dayHistory: [],
-            currentMonth: { period: '2024-01', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
+            currentMonth: { period: '2024-01', value: 100.00, timestamp: '2024-01-01T10:30:00' },
             monthHistory: [
-                { period: '2023-12', value: 250.00, timestamp: '31.12.2023, 23:59:59' },
-                { period: '2023-11', value: 220.00, timestamp: '30.11.2023, 23:59:59' }
+                { period: '2023-12', value: 250.00, timestamp: '2023-12-31T23:59:59' },
+                { period: '2023-11', value: 220.00, timestamp: '2023-11-30T23:59:59' }
             ],
-            currentYear: { period: '2024', value: 100.00, timestamp: '01.01.2024, 10:30:00' },
+            currentYear: { period: '2024', value: 100.00, timestamp: '2024-01-01T10:30:00' },
             yearHistory: []
         };
         
@@ -384,11 +384,11 @@ function testHistoryOrdering() {
         // Now simulate a new hour by modifying the data
         // In real scenario, saveValue would do unshift to add newest hour at position 0
         loadedData.hourHistory.unshift(loadedData.currentHour);
-        loadedData.currentHour = { period: '2024-01-01_11', value: 8.00, timestamp: '01.01.2024, 11:30:00' };
+        loadedData.currentHour = { period: '2024-01-01_11', value: 8.00, timestamp: '2024-01-01T11:30:00' };
         
         // Simulate a new month
         loadedData.monthHistory.unshift(loadedData.currentMonth);
-        loadedData.currentMonth = { period: '2024-02', value: 50.00, timestamp: '01.02.2024, 10:00:00' };
+        loadedData.currentMonth = { period: '2024-02', value: 50.00, timestamp: '2024-02-01T10:00:00' };
         
         // Save the updated data
         HistoryTrackerUtils.saveData(TEST_FILE, loadedData, 'Liter');
@@ -432,6 +432,69 @@ function testHistoryOrdering() {
 }
 
 // ============================================================================
+// TEST 10: timestampMs calculation - Verify millisecond timestamps
+// ============================================================================
+function testTimestampMsCalculation() {
+    console.log('=== TEST 10: timestampMs calculation ===');
+    
+    cleanupTestFiles();
+    
+    const sampleContent = `============================================================
+  LAST VALUE
+============================================================
+T: 2024-01-01T10:30:00  -  V: 123.45 Liter
+
+
+============================================================
+  CURRENT HOUR
+============================================================
+T: 2024-01-01T10:30:00  -  P: 2024-01-01_10  -  V: 5.50 Liter
+
+
+============================================================
+  HOUR HISTORY (All past hours)
+============================================================
+T: 2024-01-01T09:30:00  -  P: 2024-01-01_09  -  V: 3.25 Liter
+
+
+============================================================
+  MONTH HISTORY (All past months)
+============================================================
+T: 2023-12-31T23:59:59  -  P: 2023-12  -  V: 150.00 Liter
+`;
+
+    try {
+        const result = HistoryTrackerUtils.parseHistoryFile(sampleContent);
+        
+        // Expected millisecond values for the timestamps
+        const expectedLastValueMs = new Date(2024, 0, 1, 10, 30, 0).getTime();
+        const expectedCurrentHourMs = new Date(2024, 0, 1, 10, 30, 0).getTime();
+        const expectedHourHistoryMs = new Date(2024, 0, 1, 9, 30, 0).getTime();
+        const expectedMonthHistoryMs = new Date(2023, 11, 31, 23, 59, 59).getTime();
+        
+        const passed = 
+            result.lastValue.timestampMs === expectedLastValueMs &&
+            result.currentHour.timestampMs === expectedCurrentHourMs &&
+            result.hourHistory[0].timestampMs === expectedHourHistoryMs &&
+            result.monthHistory[0].timestampMs === expectedMonthHistoryMs &&
+            result.lastValue.timestamp === '2024-01-01T10:30:00' &&
+            result.currentHour.timestamp === '2024-01-01T10:30:00';
+        
+        printTestResult(
+            'timestampMs should be correctly calculated from timestamp string',
+            passed,
+            passed ? 'All timestampMs values calculated correctly' : 
+                `Expected: ${expectedLastValueMs}, Got: ${result.lastValue.timestampMs}`
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('timestampMs should be correctly calculated', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
 // Run all tests
 // ============================================================================
 function runAllTests() {
@@ -452,6 +515,7 @@ function runAllTests() {
     results.push(testSaveValueNegative());
     results.push(testParseHistoryFileWithHistory());
     results.push(testHistoryOrdering());
+    results.push(testTimestampMsCalculation());
     
     // Cleanup
     cleanupTestFiles();

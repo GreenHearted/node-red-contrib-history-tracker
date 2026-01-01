@@ -96,7 +96,15 @@ module.exports = function(RED) {
 // Helper functions - defined outside module.exports for testability
 function saveValue(filepath, value, unit) {
     const now = new Date();
-    const timestamp = now.toLocaleString('de-DE');
+    
+    // Create ISO-like timestamp: YYYY-MM-DDTHH:MM:SS
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const timestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     
     const currentHour = now.getHours();
     const currentDay = now.getDate();
@@ -308,22 +316,48 @@ function parseHistoryFile(content) {
             const period = compactMatch[2] ? compactMatch[2].trim() : null;
             const value = parseFloat(compactMatch[3]);
             
+            // Parse ISO timestamp format to milliseconds
+            // Format: "YYYY-MM-DDTHH:MM:SS" or legacy "DD.MM.YYYY, HH:MM:SS"
+            let timestampMs = null;
+            try {
+                // Try ISO format first
+                const isoMatch = timestamp.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+                if (isoMatch) {
+                    const [, year, month, day, hour, minute, second] = isoMatch;
+                    const date = new Date(year, month - 1, day, hour, minute, second);
+                    timestampMs = date.getTime();
+                } else {
+                    // Try legacy German format
+                    const germanMatch = timestamp.match(/(\d{2})\.(\d{2})\.(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})/);
+                    if (germanMatch) {
+                        const [, day, month, year, hour, minute, second] = germanMatch;
+                        const date = new Date(year, month - 1, day, hour, minute, second);
+                        timestampMs = date.getTime();
+                    }
+                }
+            } catch (e) {
+                // If parsing fails, timestampMs remains null
+            }
+            
             if (currentSection === 'hourHistory' || currentSection === 'dayHistory' || currentSection === 'monthHistory' || currentSection === 'yearHistory') {
                 data[currentSection].push({
                     period: period,
                     value: value,
-                    timestamp: timestamp
+                    timestamp: timestamp,
+                    timestampMs: timestampMs
                 });
             } else if (currentSection === 'lastValue') {
                 data[currentSection] = {
                     value: value,
-                    timestamp: timestamp
+                    timestamp: timestamp,
+                    timestampMs: timestampMs
                 };
             } else {
                 data[currentSection] = {
                     period: period,
                     value: value,
-                    timestamp: timestamp
+                    timestamp: timestamp,
+                    timestampMs: timestampMs
                 };
             }
         }
