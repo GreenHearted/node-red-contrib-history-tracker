@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { HistoryTrackerUtils } = require('./history-tracker.js');
+const { HistoryTrackerUtils } = require('../package/history-tracker.js');
 
 // Test configuration
 const TEST_DIR = path.join(__dirname, 'test-data');
@@ -648,6 +648,103 @@ function testTrimHistoryUnlimited() {
 }
 
 // ============================================================================
+// TEST 13: saveValue - Gap filling for missing hours (using real saveValue)
+// ============================================================================
+function testSaveValueHourGapFilling() {
+    console.log('=== TEST 13: saveValue (hour gap filling - using REAL saveValue) ===');
+    
+    cleanupTestFiles();
+    
+    try {
+        // Get current time
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // Calculate what hour was 3 hours ago
+        const threeHoursAgo = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+        const oldHour = threeHoursAgo.getHours();
+        const oldYear = threeHoursAgo.getFullYear();
+        const oldMonth = String(threeHoursAgo.getMonth() + 1).padStart(2, '0');
+        const oldDay = String(threeHoursAgo.getDate()).padStart(2, '0');
+        const oldHourStr = String(oldHour).padStart(2, '0');
+        const oldTimestamp = `${oldYear}-${oldMonth}-${oldDay}T${oldHourStr}:59:59`;
+        
+        // Create old data as if the last update was 3 hours ago
+        const oldHourData = {
+            lastValue: { value: 100.00, timestamp: oldTimestamp, timestampMs: threeHoursAgo.getTime() },
+            currentHour: { period: `${oldYear}-${oldMonth}-${oldDay}_${oldHourStr}`, value: 5.00, timestamp: oldTimestamp, timestampMs: threeHoursAgo.getTime() },
+            hourHistory: [],
+            currentDay: { period: `${oldYear}-${oldMonth}-${oldDay}`, value: 5.00, timestamp: oldTimestamp, timestampMs: threeHoursAgo.getTime() },
+            dayHistory: [],
+            currentMonth: { period: `${oldYear}-${oldMonth}`, value: 5.00, timestamp: oldTimestamp, timestampMs: threeHoursAgo.getTime() },
+            monthHistory: [],
+            currentYear: { period: `${oldYear}`, value: 5.00, timestamp: oldTimestamp, timestampMs: threeHoursAgo.getTime() },
+            yearHistory: []
+        };
+        
+        // Save this old data to file
+        HistoryTrackerUtils.saveData(TEST_FILE, oldHourData, 'Liter');
+        
+        // NOW USE THE REAL saveValue FUNCTION - it will use current time and detect the gap!
+        const result = HistoryTrackerUtils.saveValue(TEST_FILE, 110.00, 'Liter');
+        
+        // Calculate expected number of gap hours
+        // If old hour was X and current hour is Y, gap = Y - X - 1
+        let expectedGapCount = currentHour - oldHour - 1;
+        // Handle day wrap-around (e.g., from 23:00 to 02:00)
+        if (expectedGapCount < 0) {
+            expectedGapCount = 24 + expectedGapCount;
+        }
+        
+        // Expected total history length = 1 (old hour) + gap hours
+        const expectedHistoryLength = 1 + expectedGapCount;
+        
+        // Verify the results
+        const historyLengthCorrect = result.hourHistory.length === expectedHistoryLength;
+        
+        // Old hour should be at the END of the array (last position) because gap hours are unshifted to the front
+        const oldHourIndex = result.hourHistory.length - 1;
+        const oldHourPreserved = result.hourHistory[oldHourIndex].period === `${oldYear}-${oldMonth}-${oldDay}_${oldHourStr}` &&
+                                 result.hourHistory[oldHourIndex].value === 5.00;
+        
+        // Check that gap hours (all except the last entry) have value 0
+        let gapHoursCorrect = true;
+        for (let i = 0; i < result.hourHistory.length - 1; i++) {
+            if (result.hourHistory[i].value !== 0) {
+                gapHoursCorrect = false;
+                break;
+            }
+        }
+        
+        const passed = historyLengthCorrect && oldHourPreserved && gapHoursCorrect;
+        
+        let details = '';
+        if (!passed) {
+            details = `Hour history length: ${result.hourHistory.length} (expected ${expectedHistoryLength})\n`;
+            details += `  Gap hours expected: ${expectedGapCount}\n`;
+            details += `  History entries:\n`;
+            result.hourHistory.forEach((h, idx) => {
+                details += `    [${idx}] period: ${h.period}, value: ${h.value}\n`;
+            });
+            details += `  Current hour: period: ${result.currentHour.period}, value: ${result.currentHour.value}`;
+        } else {
+            details = `Real saveValue() detected ${expectedGapCount} missing hours and filled them with 0, preserved old hour`;
+        }
+        
+        printTestResult(
+            'saveValue (REAL FUNCTION) should fill missing hours with zero values',
+            passed,
+            details
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('saveValue gap filling test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
 // Run all tests
 // ============================================================================
 function runAllTests() {
@@ -671,6 +768,7 @@ function runAllTests() {
     results.push(testTimestampMsCalculation());
     results.push(testTrimHistory());
     results.push(testTrimHistoryUnlimited());
+    results.push(testSaveValueHourGapFilling());
     
     // Cleanup
     cleanupTestFiles();

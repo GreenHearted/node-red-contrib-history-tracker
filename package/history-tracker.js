@@ -12,8 +12,18 @@ const HistoryTrackerUtils = {
     trimHistory
 };
 
+/**
+ * Node-RED module export function
+ * Registers the history-tracker node type with Node-RED
+ * @param {Object} RED - Node-RED runtime object
+ */
 module.exports = function(RED) {
     
+    /**
+     * History Tracker Node constructor
+     * Creates a new history tracker node instance
+     * @param {Object} config - Node configuration from Node-RED editor
+     */
     function HistoryTrackerNode(config) {
         RED.nodes.createNode(this, config);
         const node = this;
@@ -112,6 +122,34 @@ module.exports = function(RED) {
 }
 
 // Helper functions - defined outside module.exports for testability
+
+/**
+ * Fill missing periods with zero values when a gap is detected
+ * @param {Object} data - The data object containing history arrays
+ * @param {string} historyKey - The key for the history array ('hourHistory', 'dayHistory', etc.)
+ * @param {Object} currentPeriod - The current period object to be moved to history
+ * @param {number} periodDiff - Number of periods that have passed
+ * @param {Function} generateMissingPeriod - Function to generate a missing period entry
+ */
+function fillPeriodGap(data, historyKey, currentPeriod, periodDiff, generateMissingPeriod) {
+    // Save current period to history first
+    data[historyKey].unshift({ ...currentPeriod });
+    
+    // Fill in missing periods (from most recent to oldest)
+    for (let i = periodDiff - 1; i >= 1; i--) {
+        const missingPeriod = generateMissingPeriod(i);
+        data[historyKey].unshift(missingPeriod);
+    }
+}
+
+/**
+ * Save a new value and update history tracking
+ * Calculates differences, detects period changes, and fills gaps with zero values
+ * @param {string} filepath - Path to the history file
+ * @param {number} value - The new value to save
+ * @param {string} unit - The unit of measurement (e.g., 'Liter')
+ * @returns {Object} The updated data object with all history information
+ */
 function saveValue(filepath, value, unit) {
     const now = new Date();
     
@@ -151,10 +189,49 @@ function saveValue(filepath, value, unit) {
     const hourKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}_${String(currentHour).padStart(2, '0')}`;
     
     if (data.currentHour.period !== hourKey) {
-        // New hour - move old hour to history (at the beginning for newest first)
+        // New hour detected
         if (data.currentHour.period) {
-            data.hourHistory.unshift({ ...data.currentHour });
+            // Calculate how many hours have passed since last update
+            const lastHourMatch = data.currentHour.period.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})/);
+            if (lastHourMatch) {
+                const [, lastYear, lastMonth, lastDay, lastHour] = lastHourMatch;
+                const lastDate = new Date(lastYear, lastMonth - 1, lastDay, lastHour);
+                const currentDate = new Date(currentYear, currentMonth - 1, currentDay, currentHour);
+                
+                // Calculate hours difference
+                const hoursDiff = Math.floor((currentDate - lastDate) / (1000 * 60 * 60));
+                
+                if (hoursDiff > 1) {
+                    // Multiple hours have passed - fill missing hours with zero
+                    fillPeriodGap(data, 'hourHistory', data.currentHour, hoursDiff, (i) => {
+                        const missingDate = new Date(currentDate.getTime() - (i * 60 * 60 * 1000));
+                        const missingYear = missingDate.getFullYear();
+                        const missingMonth = String(missingDate.getMonth() + 1).padStart(2, '0');
+                        const missingDay = String(missingDate.getDate()).padStart(2, '0');
+                        const missingHour = String(missingDate.getHours()).padStart(2, '0');
+                        const missingMinutes = String(missingDate.getMinutes()).padStart(2, '0');
+                        const missingSeconds = String(missingDate.getSeconds()).padStart(2, '0');
+                        
+                        const missingHourKey = `${missingYear}-${missingMonth}-${missingDay}_${missingHour}`;
+                        const missingTimestamp = `${missingYear}-${missingMonth}-${missingDay}T${missingHour}:${missingMinutes}:${missingSeconds}`;
+                        
+                        return {
+                            period: missingHourKey,
+                            value: 0,
+                            timestamp: missingTimestamp,
+                            timestampMs: missingDate.getTime()
+                        };
+                    });
+                } else {
+                    // Only one hour has passed - normal behavior
+                    data.hourHistory.unshift({ ...data.currentHour });
+                }
+            } else {
+                // Couldn't parse old period, just add it normally
+                data.hourHistory.unshift({ ...data.currentHour });
+            }
         }
+        
         // New hour starts at 0 and adds current difference
         data.currentHour = {
             period: hourKey,
@@ -175,10 +252,46 @@ function saveValue(filepath, value, unit) {
     const dayKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
     
     if (data.currentDay.period !== dayKey) {
-        // New day - move old day to history (at the beginning for newest first)
+        // New day detected
         if (data.currentDay.period) {
-            data.dayHistory.unshift({ ...data.currentDay });
+            // Calculate how many days have passed since last update
+            const lastDayMatch = data.currentDay.period.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (lastDayMatch) {
+                const [, lastYear, lastMonth, lastDay] = lastDayMatch;
+                const lastDate = new Date(lastYear, lastMonth - 1, lastDay);
+                const currentDate = new Date(currentYear, currentMonth - 1, currentDay);
+                
+                // Calculate days difference
+                const daysDiff = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
+                
+                if (daysDiff > 1) {
+                    // Multiple days have passed - fill missing days with zero
+                    fillPeriodGap(data, 'dayHistory', data.currentDay, daysDiff, (i) => {
+                        const missingDate = new Date(currentDate.getTime() - (i * 24 * 60 * 60 * 1000));
+                        const missingYear = missingDate.getFullYear();
+                        const missingMonth = String(missingDate.getMonth() + 1).padStart(2, '0');
+                        const missingDay = String(missingDate.getDate()).padStart(2, '0');
+                        
+                        const missingDayKey = `${missingYear}-${missingMonth}-${missingDay}`;
+                        const missingTimestamp = `${missingYear}-${missingMonth}-${missingDay}T23:59:59`;
+                        
+                        return {
+                            period: missingDayKey,
+                            value: 0,
+                            timestamp: missingTimestamp,
+                            timestampMs: missingDate.getTime()
+                        };
+                    });
+                } else {
+                    // Only one day has passed - normal behavior
+                    data.dayHistory.unshift({ ...data.currentDay });
+                }
+            } else {
+                // Couldn't parse old period, just add it normally
+                data.dayHistory.unshift({ ...data.currentDay });
+            }
         }
+        
         // New day starts at 0 and adds current difference
         data.currentDay = {
             period: dayKey,
@@ -199,10 +312,45 @@ function saveValue(filepath, value, unit) {
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     
     if (data.currentMonth.period !== monthKey) {
-        // New month - move old month to history (at the beginning for newest first)
+        // New month detected
         if (data.currentMonth.period) {
-            data.monthHistory.unshift({ ...data.currentMonth });
+            // Calculate how many months have passed since last update
+            const lastMonthMatch = data.currentMonth.period.match(/(\d{4})-(\d{2})/);
+            if (lastMonthMatch) {
+                const [, lastYear, lastMonth] = lastMonthMatch;
+                const lastDate = new Date(lastYear, lastMonth - 1, 1);
+                const currentDate = new Date(currentYear, currentMonth - 1, 1);
+                
+                // Calculate months difference
+                const monthsDiff = (currentYear - parseInt(lastYear)) * 12 + (currentMonth - parseInt(lastMonth));
+                
+                if (monthsDiff > 1) {
+                    // Multiple months have passed - fill missing months with zero
+                    fillPeriodGap(data, 'monthHistory', data.currentMonth, monthsDiff, (i) => {
+                        const missingDate = new Date(currentYear, currentMonth - 1 - i, 1);
+                        const missingYear = missingDate.getFullYear();
+                        const missingMonth = String(missingDate.getMonth() + 1).padStart(2, '0');
+                        
+                        const missingMonthKey = `${missingYear}-${missingMonth}`;
+                        const missingTimestamp = `${missingYear}-${missingMonth}-01T00:00:00`;
+                        
+                        return {
+                            period: missingMonthKey,
+                            value: 0,
+                            timestamp: missingTimestamp,
+                            timestampMs: missingDate.getTime()
+                        };
+                    });
+                } else {
+                    // Only one month has passed - normal behavior
+                    data.monthHistory.unshift({ ...data.currentMonth });
+                }
+            } else {
+                // Couldn't parse old period, just add it normally
+                data.monthHistory.unshift({ ...data.currentMonth });
+            }
         }
+        
         // New month starts at 0 and adds current difference
         data.currentMonth = {
             period: monthKey,
@@ -223,10 +371,32 @@ function saveValue(filepath, value, unit) {
     const yearKey = `${currentYear}`;
     
     if (data.currentYear.period !== yearKey) {
-        // New year - move old year to history (at the beginning for newest first)
+        // New year detected
         if (data.currentYear.period) {
-            data.yearHistory.unshift({ ...data.currentYear });
+            // Calculate how many years have passed since last update
+            const lastYearInt = parseInt(data.currentYear.period);
+            const yearsDiff = currentYear - lastYearInt;
+            
+            if (yearsDiff > 1) {
+                // Multiple years have passed - fill missing years with zero
+                fillPeriodGap(data, 'yearHistory', data.currentYear, yearsDiff, (i) => {
+                    const missingYear = currentYear - i;
+                    const missingYearKey = `${missingYear}`;
+                    const missingTimestamp = `${missingYear}-01-01T00:00:00`;
+                    
+                    return {
+                        period: missingYearKey,
+                        value: 0,
+                        timestamp: missingTimestamp,
+                        timestampMs: new Date(missingYear, 0, 1).getTime()
+                    };
+                });
+            } else {
+                // Only one year has passed - normal behavior
+                data.yearHistory.unshift({ ...data.currentYear });
+            }
         }
+        
         // New year starts at 0 and adds current difference
         data.currentYear = {
             period: yearKey,
@@ -248,6 +418,12 @@ function saveValue(filepath, value, unit) {
     return data;
 }
 
+/**
+ * Load history data from file
+ * Returns empty data structure if file doesn't exist or can't be read
+ * @param {string} filepath - Path to the history file
+ * @returns {Object} Data object containing all history information
+ */
 function loadData(filepath) {
     if (!fs.existsSync(filepath)) {
         return {
@@ -281,6 +457,12 @@ function loadData(filepath) {
     }
 }
 
+/**
+ * Parse history file content into structured data object
+ * Supports both ISO format (YYYY-MM-DDTHH:MM:SS) and legacy German format (DD.MM.YYYY, HH:MM:SS)
+ * @param {string} content - The file content to parse
+ * @returns {Object} Parsed data object with all history sections
+ */
 function parseHistoryFile(content) {
     const data = {
         lastValue: {},
@@ -384,6 +566,13 @@ function parseHistoryFile(content) {
     return data;
 }
 
+/**
+ * Save data to history file in human-readable format
+ * Creates structured sections for last value, current periods, and history arrays
+ * @param {string} filepath - Path to the history file
+ * @param {Object} data - The data object to save
+ * @param {string} unit - The unit of measurement (e.g., 'Liter')
+ */
 function saveData(filepath, data, unit) {
     let content = '';
     
@@ -469,6 +658,16 @@ function saveData(filepath, data, unit) {
     fs.writeFileSync(filepath, content, 'utf8');
 }
 
+/**
+ * Trim history arrays to configured maximum lengths
+ * Keeps the newest entries (at the beginning of the array) and removes older ones
+ * @param {Object} data - The data object containing history arrays
+ * @param {Object} limits - Object containing max limits for each history type
+ * @param {number} limits.maxHourHistory - Maximum number of hour history entries (0 = unlimited)
+ * @param {number} limits.maxDayHistory - Maximum number of day history entries (0 = unlimited)
+ * @param {number} limits.maxMonthHistory - Maximum number of month history entries (0 = unlimited)
+ * @param {number} limits.maxYearHistory - Maximum number of year history entries (0 = unlimited)
+ */
 function trimHistory(data, limits) {
     // Trim hour history
     if (limits.maxHourHistory > 0 && data.hourHistory.length > limits.maxHourHistory) {

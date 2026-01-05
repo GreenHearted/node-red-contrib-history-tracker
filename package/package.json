@@ -1,10 +1,10 @@
 {
-  "name": "node-red-contrib-history-tracker",
-  "version": "1.0.0",
+  "name": "@schey-dev/node-red-contrib-history-tracker",
+  "version": "1.0.1",
   "description": "Node-RED node to track and store historical values with automatic time-based aggregation (hour, day, month, year)",
   "main": "history-tracker.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-functions.js"
   },
   "files": [
     "history-tracker.js",
@@ -14,15 +14,19 @@
   ],
   "keywords": [
     "node-red",
+    "node-red-contrib",
     "history",
     "tracker",
     "statistics",
     "aggregation",
     "time-series",
     "water-meter",
-    "energy-meter"
+    "energy-meter",
+    "counter",
+    "consumption"
   ],
   "node-red": {
+    "version": ">=2.0.0",
     "nodes": {
       "history-tracker": "history-tracker.js"
     }
@@ -32,6 +36,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/GreenHearted/node-red-contrib-history-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GreenHearted/node-red-contrib-history-tracker/issues"
+  },
+  "homepage": "https://github.com/GreenHearted/node-red-contrib-history-tracker#readme",
+  "engines": {
+    "node": ">=12.0.0"
   },
   "dependencies": {},
   "devDependencies": {}
