@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { HistoryTrackerUtils } = require('../package/history-tracker.js');
+const { HistoryTrackerUtils } = require('../history-tracker.js');
 
 // Test configuration
 const TEST_DIR = path.join(__dirname, 'test-data');
