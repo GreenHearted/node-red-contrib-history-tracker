@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.0.0";
+const VERSION = "2.0.1";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
@@ -575,6 +575,11 @@ function parseHistoryFile(content) {
  */
 function saveData(filepath, data, unit) {
     let content = '';
+    
+    // Add version header
+    content += '# File created by History Tracker version ' + VERSION + '\n';
+    content += '# Timestamp: ' + new Date().toISOString() + '\n';
+    content += '\n';
     
     content += '='.repeat(60) + '\n';
     content += '  LAST VALUE\n';
