@@ -117,4 +117,21 @@
         <li>Die alte Periode wird in die Historie verschoben</li>
         <li>Historie wird auf konfigurierte Limits begrenzt (neueste zuerst)</li>
     </ul>
+    
+    <h3>Min/Max Tracking</h3>
+    <p>Beim Periodenwechsel werden automatisch Minimum- und Maximum-Werte aus den untergeordneten Perioden berechnet:</p>
+    <ul>
+        <li><b>Tag → Historie:</b> Min/Max aus Stundenwerten des Tages</li>
+        <li><b>Monat → Historie:</b> Min/Max aus Tageswerten des Monats</li>
+        <li><b>Jahr → Historie:</b> Min/Max aus Monatswerten des Jahres</li>
+    </ul>
+    <p><i>Hinweis: Min/Max werden nur für abgeschlossene Perioden in der Historie gespeichert, nicht für aktuelle Perioden.</i></p>
+    
+    <h3>Abwärtskompatibilität</h3>
+    <p>Der Node ist vollständig abwärtskompatibel mit älteren Datendateien:</p>
+    <ul>
+        <li>Alte Dateien ohne Min/Max-Werte werden korrekt gelesen</li>
+        <li>Neue Min/Max-Werte werden ab dem nächsten Periodenwechsel berechnet</li>
+        <li>Alte Einträge behalten ihre ursprüngliche Form</li>
+    </ul>
 </script>

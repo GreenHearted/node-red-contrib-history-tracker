@@ -254,6 +254,16 @@ function saveValue(filepath, value, unit) {
     if (data.currentDay.period !== dayKey) {
         // New day detected
         if (data.currentDay.period) {
+            // Calculate min/max from hour history for this day
+            const dayPrefix = data.currentDay.period;
+            const dayHours = data.hourHistory.filter(h => h.period && h.period.startsWith(dayPrefix));
+            
+            if (dayHours.length > 0) {
+                const hourValues = dayHours.map(h => h.value);
+                data.currentDay.min = Math.min(...hourValues);
+                data.currentDay.max = Math.max(...hourValues);
+            }
+            
             // Calculate how many days have passed since last update
             const lastDayMatch = data.currentDay.period.match(/(\d{4})-(\d{2})-(\d{2})/);
             if (lastDayMatch) {
@@ -279,7 +289,9 @@ function saveValue(filepath, value, unit) {
                             period: missingDayKey,
                             value: 0,
                             timestamp: missingTimestamp,
-                            timestampMs: missingDate.getTime()
+                            timestampMs: missingDate.getTime(),
+                            min: 0,
+                            max: 0
                         };
                     });
                 } else {
@@ -314,6 +326,16 @@ function saveValue(filepath, value, unit) {
     if (data.currentMonth.period !== monthKey) {
         // New month detected
         if (data.currentMonth.period) {
+            // Calculate min/max from day history for this month
+            const monthPrefix = data.currentMonth.period;
+            const monthDays = data.dayHistory.filter(d => d.period && d.period.startsWith(monthPrefix));
+            
+            if (monthDays.length > 0) {
+                const dayValues = monthDays.map(d => d.value);
+                data.currentMonth.min = Math.min(...dayValues);
+                data.currentMonth.max = Math.max(...dayValues);
+            }
+            
             // Calculate how many months have passed since last update
             const lastMonthMatch = data.currentMonth.period.match(/(\d{4})-(\d{2})/);
             if (lastMonthMatch) {
@@ -338,7 +360,9 @@ function saveValue(filepath, value, unit) {
                             period: missingMonthKey,
                             value: 0,
                             timestamp: missingTimestamp,
-                            timestampMs: missingDate.getTime()
+                            timestampMs: missingDate.getTime(),
+                            min: 0,
+                            max: 0
                         };
                     });
                 } else {
@@ -373,6 +397,16 @@ function saveValue(filepath, value, unit) {
     if (data.currentYear.period !== yearKey) {
         // New year detected
         if (data.currentYear.period) {
+            // Calculate min/max from month history for this year
+            const yearPrefix = data.currentYear.period;
+            const yearMonths = data.monthHistory.filter(m => m.period && m.period.startsWith(yearPrefix));
+            
+            if (yearMonths.length > 0) {
+                const monthValues = yearMonths.map(m => m.value);
+                data.currentYear.min = Math.min(...monthValues);
+                data.currentYear.max = Math.max(...monthValues);
+            }
+            
             // Calculate how many years have passed since last update
             const lastYearInt = parseInt(data.currentYear.period);
             const yearsDiff = currentYear - lastYearInt;
@@ -388,7 +422,9 @@ function saveValue(filepath, value, unit) {
                         period: missingYearKey,
                         value: 0,
                         timestamp: missingTimestamp,
-                        timestampMs: new Date(missingYear, 0, 1).getTime()
+                        timestampMs: new Date(missingYear, 0, 1).getTime(),
+                        min: 0,
+                        max: 0
                     };
                 });
             } else {
@@ -507,14 +543,16 @@ function parseHistoryFile(content) {
             continue;
         }
         
-        // Parse compact format: T: timestamp  -  P: period  -  V: value unit
+        // Parse compact format: T: timestamp  -  P: period  -  V: value unit  -  Min: min  -  Max: max
         // For lastValue: T: timestamp  -  V: value unit
-        const compactMatch = line.match(/T:\s*(.+?)\s*-\s*(?:P:\s*(.+?)\s*-\s*)?V:\s*([\d.]+)/);
+        const compactMatch = line.match(/T:\s*(.+?)\s*-\s*(?:P:\s*(.+?)\s*-\s*)?V:\s*([\d.]+)\s*\w*(?:\s*-\s*Min:\s*([\d.]+)\s*-\s*Max:\s*([\d.]+))?/);
         
         if (compactMatch && currentSection) {
             const timestamp = compactMatch[1].trim();
             const period = compactMatch[2] ? compactMatch[2].trim() : null;
             const value = parseFloat(compactMatch[3]);
+            const min = compactMatch[4] ? parseFloat(compactMatch[4]) : undefined;
+            const max = compactMatch[5] ? parseFloat(compactMatch[5]) : undefined;
             
             // Parse ISO timestamp format to milliseconds
             // Format: "YYYY-MM-DDTHH:MM:SS" or legacy "DD.MM.YYYY, HH:MM:SS"
@@ -540,12 +578,15 @@ function parseHistoryFile(content) {
             }
             
             if (currentSection === 'hourHistory' || currentSection === 'dayHistory' || currentSection === 'monthHistory' || currentSection === 'yearHistory') {
-                data[currentSection].push({
+                const entry = {
                     period: period,
                     value: value,
                     timestamp: timestamp,
                     timestampMs: timestampMs
-                });
+                };
+                if (min !== undefined) entry.min = min;
+                if (max !== undefined) entry.max = max;
+                data[currentSection].push(entry);
             } else if (currentSection === 'lastValue') {
                 data[currentSection] = {
                     value: value,
@@ -553,12 +594,15 @@ function parseHistoryFile(content) {
                     timestampMs: timestampMs
                 };
             } else {
-                data[currentSection] = {
+                const entry = {
                     period: period,
                     value: value,
                     timestamp: timestamp,
                     timestampMs: timestampMs
                 };
+                if (min !== undefined) entry.min = min;
+                if (max !== undefined) entry.max = max;
+                data[currentSection] = entry;
             }
         }
     }
@@ -611,7 +655,11 @@ function saveData(filepath, data, unit) {
     content += '  CURRENT DAY\n';
     content += '='.repeat(60) + '\n';
     if (data.currentDay.period) {
-        content += `T: ${data.currentDay.timestamp}  -  P: ${data.currentDay.period}  -  V: ${data.currentDay.value.toFixed(2)} ${unit}\n`;
+        content += `T: ${data.currentDay.timestamp}  -  P: ${data.currentDay.period}  -  V: ${data.currentDay.value.toFixed(2)} ${unit}`;
+        if (data.currentDay.min !== undefined && data.currentDay.max !== undefined) {
+            content += `  -  Min: ${data.currentDay.min.toFixed(2)}  -  Max: ${data.currentDay.max.toFixed(2)}`;
+        }
+        content += '\n';
     }
     content += '\n\n';
     
@@ -620,7 +668,11 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.dayHistory && data.dayHistory.length > 0) {
         data.dayHistory.forEach((day) => {
-            content += `T: ${day.timestamp}  -  P: ${day.period}  -  V: ${day.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${day.timestamp}  -  P: ${day.period}  -  V: ${day.value.toFixed(2)} ${unit}`;
+            if (day.min !== undefined && day.max !== undefined) {
+                content += `  -  Min: ${day.min.toFixed(2)}  -  Max: ${day.max.toFixed(2)}`;
+            }
+            content += '\n';
         });
     }
     content += '\n\n';
@@ -629,7 +681,11 @@ function saveData(filepath, data, unit) {
     content += '  CURRENT MONTH\n';
     content += '='.repeat(60) + '\n';
     if (data.currentMonth.period) {
-        content += `T: ${data.currentMonth.timestamp}  -  P: ${data.currentMonth.period}  -  V: ${data.currentMonth.value.toFixed(2)} ${unit}\n`;
+        content += `T: ${data.currentMonth.timestamp}  -  P: ${data.currentMonth.period}  -  V: ${data.currentMonth.value.toFixed(2)} ${unit}`;
+        if (data.currentMonth.min !== undefined && data.currentMonth.max !== undefined) {
+            content += `  -  Min: ${data.currentMonth.min.toFixed(2)}  -  Max: ${data.currentMonth.max.toFixed(2)}`;
+        }
+        content += '\n';
     }
     content += '\n\n';
     
@@ -638,7 +694,11 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.monthHistory.length > 0) {
         data.monthHistory.forEach((month) => {
-            content += `T: ${month.timestamp}  -  P: ${month.period}  -  V: ${month.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${month.timestamp}  -  P: ${month.period}  -  V: ${month.value.toFixed(2)} ${unit}`;
+            if (month.min !== undefined && month.max !== undefined) {
+                content += `  -  Min: ${month.min.toFixed(2)}  -  Max: ${month.max.toFixed(2)}`;
+            }
+            content += '\n';
         });
     }
     content += '\n\n';
@@ -647,7 +707,11 @@ function saveData(filepath, data, unit) {
     content += '  CURRENT YEAR\n';
     content += '='.repeat(60) + '\n';
     if (data.currentYear.period) {
-        content += `T: ${data.currentYear.timestamp}  -  P: ${data.currentYear.period}  -  V: ${data.currentYear.value.toFixed(2)} ${unit}\n`;
+        content += `T: ${data.currentYear.timestamp}  -  P: ${data.currentYear.period}  -  V: ${data.currentYear.value.toFixed(2)} ${unit}`;
+        if (data.currentYear.min !== undefined && data.currentYear.max !== undefined) {
+            content += `  -  Min: ${data.currentYear.min.toFixed(2)}  -  Max: ${data.currentYear.max.toFixed(2)}`;
+        }
+        content += '\n';
     }
     content += '\n\n';
     
@@ -656,7 +720,11 @@ function saveData(filepath, data, unit) {
     content += '='.repeat(60) + '\n';
     if (data.yearHistory.length > 0) {
         data.yearHistory.forEach((year) => {
-            content += `T: ${year.timestamp}  -  P: ${year.period}  -  V: ${year.value.toFixed(2)} ${unit}\n`;
+            content += `T: ${year.timestamp}  -  P: ${year.period}  -  V: ${year.value.toFixed(2)} ${unit}`;
+            if (year.min !== undefined && year.max !== undefined) {
+                content += `  -  Min: ${year.min.toFixed(2)}  -  Max: ${year.max.toFixed(2)}`;
+            }
+            content += '\n';
         });
     }
     

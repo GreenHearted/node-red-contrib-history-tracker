@@ -319,14 +319,14 @@ T: 2024-02-01T10:00:00  -  V: 200.00 Liter
 ============================================================
   MONTH HISTORY (All past months)
 ============================================================
-T: 2024-01-31T23:59:59  -  P: 2024-01  -  V: 150.00 Liter
-T: 2023-12-31T23:59:59  -  P: 2023-12  -  V: 180.00 Liter
+T: 2024-01-31T23:59:59  -  P: 2024-01  -  V: 150.00 Liter  -  Min: 120.00  -  Max: 180.00
+T: 2023-12-31T23:59:59  -  P: 2023-12  -  V: 180.00 Liter  -  Min: 150.00  -  Max: 200.00
 
 
 ============================================================
   YEAR HISTORY (All past years)
 ============================================================
-T: 2023-12-31T23:59:59  -  P: 2023  -  V: 1200.00 Liter
+T: 2023-12-31T23:59:59  -  P: 2023  -  V: 1200.00 Liter  -  Min: 1000.00  -  Max: 1500.00
 `;
 
     const result = HistoryTrackerUtils.parseHistoryFile(sampleContent);
@@ -336,14 +336,28 @@ T: 2023-12-31T23:59:59  -  P: 2023  -  V: 1200.00 Liter
         result.monthHistory.length === 2 &&
         result.monthHistory[0].period === '2024-01' &&
         result.monthHistory[0].value === 150.00 &&
+        result.monthHistory[0].min === 120.00 &&
+        result.monthHistory[0].max === 180.00 &&
         result.monthHistory[1].period === '2023-12' &&
+        result.monthHistory[1].value === 180.00 &&
+        result.monthHistory[1].min === 150.00 &&
+        result.monthHistory[1].max === 200.00 &&
         result.yearHistory.length === 1 &&
-        result.yearHistory[0].value === 1200.00;
+        result.yearHistory[0].value === 1200.00 &&
+        result.yearHistory[0].min === 1000.00 &&
+        result.yearHistory[0].max === 1500.00;
+    
+    let details = '';
+    if (!passed) {
+        details = `Month[0]: ${JSON.stringify(result.monthHistory[0])}, Year[0]: ${JSON.stringify(result.yearHistory[0])}`;
+    } else {
+        details = 'History arrays parsed correctly with min/max';
+    }
     
     printTestResult(
         'parseHistoryFile should parse history arrays correctly',
         passed,
-        passed ? 'History arrays parsed correctly' : `Got: ${JSON.stringify(result, null, 2)}`
+        details
     );
     
     return passed;
@@ -514,24 +528,24 @@ function testTrimHistory() {
             ],
             currentDay: { period: '2024-01-01', value: 10.00, timestamp: '2024-01-01T12:00:00' },
             dayHistory: [
-                { period: '2023-12-31', value: 20.00, timestamp: '2023-12-31T23:59:59' },
-                { period: '2023-12-30', value: 19.00, timestamp: '2023-12-30T23:59:59' },
-                { period: '2023-12-29', value: 18.00, timestamp: '2023-12-29T23:59:59' },
-                { period: '2023-12-28', value: 17.00, timestamp: '2023-12-28T23:59:59' }
+                { period: '2023-12-31', value: 20.00, timestamp: '2023-12-31T23:59:59', min: 18.00, max: 22.00 },
+                { period: '2023-12-30', value: 19.00, timestamp: '2023-12-30T23:59:59', min: 17.00, max: 21.00 },
+                { period: '2023-12-29', value: 18.00, timestamp: '2023-12-29T23:59:59', min: 16.00, max: 20.00 },
+                { period: '2023-12-28', value: 17.00, timestamp: '2023-12-28T23:59:59', min: 15.00, max: 19.00 }
             ],
             currentMonth: { period: '2024-01', value: 50.00, timestamp: '2024-01-01T12:00:00' },
             monthHistory: [
-                { period: '2023-12', value: 150.00, timestamp: '2023-12-31T23:59:59' },
-                { period: '2023-11', value: 140.00, timestamp: '2023-11-30T23:59:59' },
-                { period: '2023-10', value: 130.00, timestamp: '2023-10-31T23:59:59' },
-                { period: '2023-09', value: 120.00, timestamp: '2023-09-30T23:59:59' }
+                { period: '2023-12', value: 150.00, timestamp: '2023-12-31T23:59:59', min: 140.00, max: 160.00 },
+                { period: '2023-11', value: 140.00, timestamp: '2023-11-30T23:59:59', min: 130.00, max: 150.00 },
+                { period: '2023-10', value: 130.00, timestamp: '2023-10-31T23:59:59', min: 120.00, max: 140.00 },
+                { period: '2023-09', value: 120.00, timestamp: '2023-09-30T23:59:59', min: 110.00, max: 130.00 }
             ],
             currentYear: { period: '2024', value: 200.00, timestamp: '2024-01-01T12:00:00' },
             yearHistory: [
-                { period: '2023', value: 1000.00, timestamp: '2023-12-31T23:59:59' },
-                { period: '2022', value: 900.00, timestamp: '2022-12-31T23:59:59' },
-                { period: '2021', value: 800.00, timestamp: '2021-12-31T23:59:59' },
-                { period: '2020', value: 700.00, timestamp: '2020-12-31T23:59:59' }
+                { period: '2023', value: 1000.00, timestamp: '2023-12-31T23:59:59', min: 900.00, max: 1100.00 },
+                { period: '2022', value: 900.00, timestamp: '2022-12-31T23:59:59', min: 800.00, max: 1000.00 },
+                { period: '2021', value: 800.00, timestamp: '2021-12-31T23:59:59', min: 700.00, max: 900.00 },
+                { period: '2020', value: 700.00, timestamp: '2020-12-31T23:59:59', min: 600.00, max: 800.00 }
             ]
         };
         
@@ -553,14 +567,20 @@ function testTrimHistory() {
         
         const dayTrimmed = testData.dayHistory.length === 2 &&
                           testData.dayHistory[0].period === '2023-12-31' &&
+                          testData.dayHistory[0].min === 18.00 &&
+                          testData.dayHistory[0].max === 22.00 &&
                           testData.dayHistory[1].period === '2023-12-30';
         
         const monthTrimmed = testData.monthHistory.length === 2 &&
                             testData.monthHistory[0].period === '2023-12' &&
+                            testData.monthHistory[0].min === 140.00 &&
+                            testData.monthHistory[0].max === 160.00 &&
                             testData.monthHistory[1].period === '2023-11';
         
         const yearTrimmed = testData.yearHistory.length === 2 &&
                            testData.yearHistory[0].period === '2023' &&
+                           testData.yearHistory[0].min === 900.00 &&
+                           testData.yearHistory[0].max === 1100.00 &&
                            testData.yearHistory[1].period === '2022';
         
         const passed = hourTrimmed && dayTrimmed && monthTrimmed && yearTrimmed;
@@ -648,7 +668,120 @@ function testTrimHistoryUnlimited() {
 }
 
 // ============================================================================
-// TEST 13: saveValue - Gap filling for missing hours (using real saveValue)
+// TEST 13: Backwards compatibility - Parse old format without min/max
+// ============================================================================
+function testBackwardsCompatibility() {
+    console.log('=== TEST 13: Backwards compatibility (old format without min/max) ===');
+    
+    const oldFormatContent = `============================================================
+  LAST VALUE
+============================================================
+T: 2024-01-01T10:00:00  -  V: 100.00 Liter
+
+
+============================================================
+  CURRENT DAY
+============================================================
+T: 2024-01-01T10:00:00  -  P: 2024-01-01  -  V: 50.00 Liter
+
+
+============================================================
+  DAY HISTORY (All past days)
+============================================================
+T: 2023-12-31T23:59:59  -  P: 2023-12-31  -  V: 45.00 Liter
+T: 2023-12-30T23:59:59  -  P: 2023-12-30  -  V: 40.00 Liter
+
+
+============================================================
+  CURRENT MONTH
+============================================================
+T: 2024-01-01T10:00:00  -  P: 2024-01  -  V: 50.00 Liter
+
+
+============================================================
+  MONTH HISTORY (All past months)
+============================================================
+T: 2023-12-31T23:59:59  -  P: 2023-12  -  V: 200.00 Liter
+T: 2023-11-30T23:59:59  -  P: 2023-11  -  V: 180.00 Liter
+
+
+============================================================
+  CURRENT YEAR
+============================================================
+T: 2024-01-01T10:00:00  -  P: 2024  -  V: 50.00 Liter
+
+
+============================================================
+  YEAR HISTORY (All past years)
+============================================================
+T: 2023-12-31T23:59:59  -  P: 2023  -  V: 1500.00 Liter
+`;
+
+    try {
+        const result = HistoryTrackerUtils.parseHistoryFile(oldFormatContent);
+        
+        // Verify that old format is parsed correctly
+        const parseCorrect = 
+            result.lastValue.value === 100.00 &&
+            result.currentDay.value === 50.00 &&
+            result.dayHistory.length === 2 &&
+            result.dayHistory[0].value === 45.00 &&
+            result.dayHistory[0].min === undefined &&
+            result.dayHistory[0].max === undefined &&
+            result.monthHistory.length === 2 &&
+            result.monthHistory[0].value === 200.00 &&
+            result.monthHistory[0].min === undefined &&
+            result.monthHistory[0].max === undefined &&
+            result.yearHistory.length === 1 &&
+            result.yearHistory[0].value === 1500.00 &&
+            result.yearHistory[0].min === undefined &&
+            result.yearHistory[0].max === undefined;
+        
+        if (!parseCorrect) {
+            printTestResult(
+                'Backwards compatibility should parse old format without min/max',
+                false,
+                `Parse failed: ${JSON.stringify({
+                    dayHistory0: result.dayHistory[0],
+                    monthHistory0: result.monthHistory[0],
+                    yearHistory0: result.yearHistory[0]
+                }, null, 2)}`
+            );
+            return false;
+        }
+        
+        // Now save the parsed data to a new file
+        cleanupTestFiles();
+        HistoryTrackerUtils.saveData(TEST_FILE, result, 'Liter');
+        
+        // Load it back and verify it's still correct
+        const reloadedData = HistoryTrackerUtils.loadData(TEST_FILE);
+        
+        const reloadCorrect = 
+            reloadedData.lastValue.value === 100.00 &&
+            reloadedData.dayHistory.length === 2 &&
+            reloadedData.dayHistory[0].value === 45.00 &&
+            reloadedData.monthHistory.length === 2 &&
+            reloadedData.yearHistory.length === 1;
+        
+        const passed = parseCorrect && reloadCorrect;
+        
+        printTestResult(
+            'Backwards compatibility should parse old format without min/max',
+            passed,
+            passed ? 'Old format parsed and saved correctly (min/max undefined for old entries)' : 
+                'Failed to reload data correctly'
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('Backwards compatibility test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 14: saveValue - Gap filling for missing hours (using real saveValue)
 // ============================================================================
 function testSaveValueHourGapFilling() {
     console.log('=== TEST 13: saveValue (hour gap filling - using REAL saveValue) ===');
@@ -768,6 +901,7 @@ function runAllTests() {
     results.push(testTimestampMsCalculation());
     results.push(testTrimHistory());
     results.push(testTrimHistoryUnlimited());
+    results.push(testBackwardsCompatibility());
     results.push(testSaveValueHourGapFilling());
     
     // Cleanup

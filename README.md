@@ -5,9 +5,12 @@ Ein Node-RED Node zum Speichern und Verfolgen von historischen Werten mit automa
 ## Features
 
 ✅ **Automatische Zeitaggregation**: Stunden-, Tages-, Monats- und Jahreswerte  
+✅ **Min/Max Tracking**: Automatische Berechnung von Minimum- und Maximum-Werten  
 ✅ **History-Speicherung**: Alle vergangenen Monate und Jahre werden aufbewahrt  
+✅ **History-Limits**: Konfigurierbare maximale Anzahl von Einträgen pro Periode  
 ✅ **Flexible Ausgabe**: Verschiedene Output-Modi wählbar  
 ✅ **Textdatei-Format**: Menschenlesbare Speicherung  
+✅ **Abwärtskompatibilität**: Liest alte Dateiformate ohne Min/Max  
 ✅ **Ideal für**: Wasserzähler, Stromzähler, Verbrauchsmessungen  
 
 ## Installation
@@ -128,7 +131,38 @@ Periode: 2025-01-12_14
 Wert: 47.20 Liter
 Zeitstempel: 12.01.2025, 14:45:00
 
+============================================================
+  TAG HISTORIE (Alle vergangenen Tage)
+============================================================
+T: 2025-01-11T23:59:59  -  P: 2025-01-11  -  V: 125.50 Liter  -  Min: 3.20  -  Max: 8.70
+T: 2025-01-10T23:59:59  -  P: 2025-01-10  -  V: 118.30 Liter  -  Min: 2.80  -  Max: 9.10
+
 ...
+```
+
+**Min/Max-Werte:**
+- Werden automatisch beim Periodenwechsel berechnet
+- Tag-Historie: Min/Max der Stundenwerte dieses Tages
+- Monats-Historie: Min/Max der Tageswerte dieses Monats
+- Jahres-Historie: Min/Max der Monatswerte dieses Jahres
+
+## Abwärtskompatibilität
+
+Der Node ist vollständig kompatibel mit älteren Dateiversionen:
+
+- ✅ Alte Dateien **ohne** Min/Max-Werte werden korrekt gelesen
+- ✅ Neue Min/Max-Werte werden ab dem nächsten Periodenwechsel berechnet
+- ✅ Alte Einträge bleiben unverändert (kein Min/Max)
+- ✅ Neue Einträge erhalten automatisch Min/Max-Werte
+- ✅ Kein manueller Migrations-Schritt erforderlich
+
+**Beispiel gemischter Inhalt:**
+```
+# Alter Eintrag (ohne Min/Max)
+T: 2024-12-31T23:59:59  -  P: 2024-12  -  V: 150.00 Liter
+
+# Neuer Eintrag (mit Min/Max)
+T: 2025-01-31T23:59:59  -  P: 2025-01  -  V: 160.00 Liter  -  Min: 140.00  -  Max: 180.00
 ```
 
 ## Ähnliche Packages

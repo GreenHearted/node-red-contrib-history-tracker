@@ -177,6 +177,23 @@ Sollte Ordner `node-red-contrib-history-tracker` enthalten.
 - `/config/` → Im Container User Directory
 - Absoluter Pfad → Eigener Pfad (muss existieren!)
 
+### History-Datei Format
+
+Die Datei enthält lesbare Textdaten:
+- **Letzter Wert**: Der aktuell gemessene Wert
+- **Aktuelle Perioden**: Stunde, Tag, Monat, Jahr (laufend)
+- **Historie**: Abgeschlossene Perioden mit Min/Max-Werten
+
+**Min/Max-Werte** (ab Version 2.1.0):
+- Werden automatisch bei Periodenwechsel berechnet
+- Tag: Min/Max der Stundenwerte
+- Monat: Min/Max der Tageswerte
+- Jahr: Min/Max der Monatswerte
+
+**Abwärtskompatibilität:**
+- Alte Dateien ohne Min/Max werden korrekt gelesen
+- Neue Min/Max werden ab nächstem Periodenwechsel ergänzt
+
 ### Zugriff auf History-Dateien
 
 **Via File Editor:**
