@@ -105,6 +105,22 @@ module.exports = function(RED) {
                 } else if (node.outputMode === 'all') {
                     msg.payload = data;
                     node.send(msg);
+                } else if (node.outputMode === 'hour_history') {
+                    msg.topic = 'hour_history';
+                    msg.payload = [data.currentHour, ...data.hourHistory];
+                    node.send(msg);
+                } else if (node.outputMode === 'day_history') {
+                    msg.topic = 'day_history';
+                    msg.payload = [data.currentDay, ...data.dayHistory];
+                    node.send(msg);
+                } else if (node.outputMode === 'month_history') {
+                    msg.topic = 'month_history';
+                    msg.payload = [data.currentMonth, ...data.monthHistory];
+                    node.send(msg);
+                } else if (node.outputMode === 'year_history') {
+                    msg.topic = 'year_history';
+                    msg.payload = [data.currentYear, ...data.yearHistory];
+                    node.send(msg);
                 }
                 
             } catch (error) {
