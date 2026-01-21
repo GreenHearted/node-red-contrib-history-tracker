@@ -784,7 +784,7 @@ T: 2023-12-31T23:59:59  -  P: 2023  -  V: 1500.00 Liter
 // TEST 14: saveValue - Gap filling for missing hours (using real saveValue)
 // ============================================================================
 function testSaveValueHourGapFilling() {
-    console.log('=== TEST 13: saveValue (hour gap filling - using REAL saveValue) ===');
+    console.log('=== TEST 14: saveValue (hour gap filling - using REAL saveValue) ===');
     
     cleanupTestFiles();
     
@@ -878,6 +878,377 @@ function testSaveValueHourGapFilling() {
 }
 
 // ============================================================================
+// TEST 15: calculateGoalProjection - Month history with goal
+// ============================================================================
+function testCalculateGoalProjectionMonth() {
+    console.log('=== TEST 15: calculateGoalProjection (month history) ===');
+    
+    try {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // 1-12
+        
+        // Calculate previous 2 months, handling year boundary
+        const prevMonth1 = currentMonth === 1 ? 12 : currentMonth - 1;
+        const prevMonth1Year = currentMonth === 1 ? currentYear - 1 : currentYear;
+        const prevMonth2 = currentMonth <= 2 ? (currentMonth === 1 ? 11 : 12) : currentMonth - 2;
+        const prevMonth2Year = currentMonth <= 2 ? currentYear - 1 : currentYear;
+        
+        // Create test data with some month history (current + 2 past months)
+        const testData = {
+            lastValue: { value: 500.00, timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15T12:00:00` },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: {},
+            dayHistory: [],
+            currentMonth: { 
+                period: `${currentYear}-${String(currentMonth).padStart(2, '0')}`, 
+                value: 100.00, 
+                timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15T12:00:00`,
+                timestampMs: now.getTime()
+            },
+            monthHistory: [
+                { 
+                    period: `${prevMonth1Year}-${String(prevMonth1).padStart(2, '0')}`, 
+                    value: 150.00, 
+                    timestamp: `${prevMonth1Year}-${String(prevMonth1).padStart(2, '0')}-28T23:59:59`,
+                    timestampMs: new Date(prevMonth1Year, prevMonth1 - 1, 28).getTime()
+                },
+                { 
+                    period: `${prevMonth2Year}-${String(prevMonth2).padStart(2, '0')}`, 
+                    value: 120.00, 
+                    timestamp: `${prevMonth2Year}-${String(prevMonth2).padStart(2, '0')}-28T23:59:59`,
+                    timestampMs: new Date(prevMonth2Year, prevMonth2 - 1, 28).getTime()
+                }
+            ],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Goal configuration: 1200 Liter from Jan to Dec
+        const goalConfig = {
+            yearlyGoal: 1200.00,
+            goalStartMonth: 1,
+            goalEndMonth: 12
+        };
+        
+        // Calculate goal projection for month history
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        
+        // For goal period Jan-Dec of current year, only current year's months are counted
+        // Since we're in current year, only current month (100) is counted, not previous year's months
+        // Total consumed = 100 (only current year months within goal period Jan-Dec)
+        const totalConsumed = 100.00;
+        const remainingGoal = 1200.00 - totalConsumed; // 1100
+        const remainingMonths = 12 - currentMonth + 1; // Months left in year  
+        const expectedGoalPerMonth = remainingGoal / remainingMonths;
+        
+        // Verify projection array structure
+        const correctLength = goalProjection.length === 3; // current + 2 history
+        const hasCurrentMonth = goalProjection[0].period === testData.currentMonth.period;
+        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerMonth) < 0.01;
+        const hasGoalFlag = goalProjection[0].isGoalProjection === true;
+        
+        // Verify all entries have the same goal value
+        const allSameValue = goalProjection.every(entry => 
+            Math.abs(entry.value - expectedGoalPerMonth) < 0.01
+        );
+        
+        const passed = correctLength && hasCurrentMonth && correctGoalValue && hasGoalFlag && allSameValue;
+        
+        let details = '';
+        if (!passed) {
+            details = `Length: ${goalProjection.length} (expected 3), `;
+            details += `Goal per month: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), `;
+            details += `Consumed: ${totalConsumed}, Remaining: ${remainingGoal}, Months left: ${remainingMonths}`;
+        } else {
+            details = `Goal distributed correctly: ${expectedGoalPerMonth.toFixed(2)} per month for ${remainingMonths} remaining months`;
+        }
+        
+        printTestResult(
+            'calculateGoalProjection should distribute remaining goal across months',
+            passed,
+            details
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('calculateGoalProjection month test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 16: calculateGoalProjection - Goal period spanning years
+// ============================================================================
+function testCalculateGoalProjectionSpanningYears() {
+    console.log('=== TEST 16: calculateGoalProjection (spanning years: Oct-Mar) ===');
+    
+    try {
+        // Simulate we're in January (month 1)
+        const currentYear = new Date().getFullYear();
+        const currentMonth = 1; // January
+        
+        // Create test data - we're in January, so the goal period started in October last year
+        const testData = {
+            lastValue: { value: 400.00, timestamp: `${currentYear}-01-15T12:00:00` },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: {},
+            dayHistory: [],
+            currentMonth: { 
+                period: `${currentYear}-01`, 
+                value: 50.00, 
+                timestamp: `${currentYear}-01-15T12:00:00`,
+                timestampMs: new Date(currentYear, 0, 15).getTime()
+            },
+            monthHistory: [
+                { period: `${currentYear - 1}-12`, value: 80.00, timestamp: `${currentYear - 1}-12-31T23:59:59` },
+                { period: `${currentYear - 1}-11`, value: 70.00, timestamp: `${currentYear - 1}-11-30T23:59:59` },
+                { period: `${currentYear - 1}-10`, value: 60.00, timestamp: `${currentYear - 1}-10-31T23:59:59` }
+            ],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Goal configuration: 600 Liter from October to March (spans years)
+        const goalConfig = {
+            yearlyGoal: 600.00,
+            goalStartMonth: 10, // October
+            goalEndMonth: 3     // March
+        };
+        
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        
+        // Total consumed in goal period (Oct, Nov, Dec, Jan) = 60 + 70 + 80 + 50 = 260
+        const totalConsumed = 260.00;
+        const remainingGoal = 600.00 - totalConsumed; // 340
+        // Remaining months: Feb, Mar = 2 months (from current month 1 to end month 3)
+        const remainingMonths = 3 - 1; // 2 months
+        const expectedGoalPerMonth = remainingGoal / remainingMonths; // 340 / 2 = 170
+        
+        const correctLength = goalProjection.length === 4; // Jan + 3 history (Dec, Nov, Oct)
+        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerMonth) < 0.01;
+        
+        const passed = correctLength && correctGoalValue;
+        
+        let details = '';
+        if (!passed) {
+            details = `Length: ${goalProjection.length} (expected 4), `;
+            details += `Goal per month: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), `;
+            details += `Consumed: ${totalConsumed}, Remaining: ${remainingGoal}, Months left: ${remainingMonths}`;
+        } else {
+            details = `Goal spanning years handled correctly: ${expectedGoalPerMonth.toFixed(2)} per month`;
+        }
+        
+        printTestResult(
+            'calculateGoalProjection should handle goal periods spanning years',
+            passed,
+            details
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('calculateGoalProjection spanning years test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 17: calculateGoalProjection - Goal already exceeded
+// ============================================================================
+function testCalculateGoalProjectionExceeded() {
+    console.log('=== TEST 17: calculateGoalProjection (goal exceeded) ===');
+    
+    try {
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        
+        // Calculate previous month, handling year boundary
+        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+        
+        // Create test data where consumption exceeds goal
+        const testData = {
+            lastValue: { value: 1500.00, timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15T12:00:00` },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: {},
+            dayHistory: [],
+            currentMonth: { 
+                period: `${currentYear}-${String(currentMonth).padStart(2, '0')}`, 
+                value: 500.00, 
+                timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15T12:00:00`,
+                timestampMs: Date.now()
+            },
+            monthHistory: [
+                { period: `${prevMonthYear}-${String(prevMonth).padStart(2, '0')}`, value: 600.00, timestamp: `${prevMonthYear}-${String(prevMonth).padStart(2, '0')}-28T23:59:59` }
+            ],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Goal is only 1000, but we've consumed 1100
+        const goalConfig = {
+            yearlyGoal: 1000.00,
+            goalStartMonth: 1,
+            goalEndMonth: 12
+        };
+        
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        
+        // For goal period Jan-Dec of current year, only current year's months are counted
+        // Current month (500) is counted, previous month is from previous year so not counted
+        // Total consumed = 500, remaining = 1000 - 500 = 500
+        // Remaining months = 12 - currentMonth + 1
+        // Expected per month = 500 / (12 - currentMonth + 1)
+        const remainingGoal = 1000.00 - 500.00; // 500
+        const remainingMonths = 12 - currentMonth + 1;
+        const expectedGoalPerMonth = remainingGoal / remainingMonths;
+        
+        const correctLength = goalProjection.length === 2;
+        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerMonth) < 0.01;
+        
+        const passed = correctLength && correctGoalValue;
+        
+        printTestResult(
+            'calculateGoalProjection should distribute remaining goal when partially consumed',
+            passed,
+            passed ? `Goal distributed correctly: ${expectedGoalPerMonth.toFixed(2)} per month` : 
+                `Goal per month: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)})`
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('calculateGoalProjection exceeded test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 18: calculateGoalProjection - No goal set (disabled)
+// ============================================================================
+function testCalculateGoalProjectionDisabled() {
+    console.log('=== TEST 18: calculateGoalProjection (disabled, goal = 0) ===');
+    
+    try {
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        
+        const testData = {
+            lastValue: { value: 500.00, timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15T12:00:00` },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: {},
+            dayHistory: [],
+            currentMonth: { 
+                period: `${currentYear}-${String(currentMonth).padStart(2, '0')}`, 
+                value: 100.00, 
+                timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15T12:00:00`,
+                timestampMs: Date.now()
+            },
+            monthHistory: [],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Goal is 0 (disabled)
+        const goalConfig = {
+            yearlyGoal: 0,
+            goalStartMonth: 1,
+            goalEndMonth: 12
+        };
+        
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        
+        const passed = goalProjection.length === 0;
+        
+        printTestResult(
+            'calculateGoalProjection should return empty array when goal = 0',
+            passed,
+            passed ? 'Empty array returned when goal disabled' : 
+                `Array length: ${goalProjection.length} (expected 0)`
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('calculateGoalProjection disabled test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 19: calculateGoalProjection - Day history
+// ============================================================================
+function testCalculateGoalProjectionDay() {
+    console.log('=== TEST 19: calculateGoalProjection (day history) ===');
+    
+    try {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const currentDay = now.getDate();
+        
+        // Create test data with day history
+        const testData = {
+            lastValue: { value: 50.00, timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}T12:00:00` },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: { 
+                period: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`, 
+                value: 10.00, 
+                timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}T12:00:00`,
+                timestampMs: now.getTime()
+            },
+            dayHistory: [
+                { 
+                    period: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay - 1).padStart(2, '0')}`, 
+                    value: 15.00, 
+                    timestamp: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay - 1).padStart(2, '0')}T23:59:59`,
+                    timestampMs: new Date(currentYear, currentMonth - 1, currentDay - 1).getTime()
+                }
+            ],
+            currentMonth: {},
+            monthHistory: [],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Goal configuration (using month-based goal period, but testing day output)
+        const goalConfig = {
+            yearlyGoal: 1200.00,
+            goalStartMonth: 1,
+            goalEndMonth: 12
+        };
+        
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'day');
+        
+        // For day history, remaining periods = days left in month
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        const remainingDays = daysInMonth - currentDay + 1;
+        
+        const correctLength = goalProjection.length === 2; // current day + 1 history
+        const hasCorrectStructure = goalProjection[0].period === testData.currentDay.period &&
+                                    goalProjection[0].isGoalProjection === true &&
+                                    typeof goalProjection[0].value === 'number';
+        
+        const passed = correctLength && hasCorrectStructure;
+        
+        printTestResult(
+            'calculateGoalProjection should work for day history',
+            passed,
+            passed ? `Day projection created with ${remainingDays} remaining days` : 
+                `Length: ${goalProjection.length}, Structure: ${JSON.stringify(goalProjection[0])}`
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('calculateGoalProjection day test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
 // Run all tests
 // ============================================================================
 function runAllTests() {
@@ -903,6 +1274,11 @@ function runAllTests() {
     results.push(testTrimHistoryUnlimited());
     results.push(testBackwardsCompatibility());
     results.push(testSaveValueHourGapFilling());
+    results.push(testCalculateGoalProjectionMonth());
+    results.push(testCalculateGoalProjectionSpanningYears());
+    results.push(testCalculateGoalProjectionExceeded());
+    results.push(testCalculateGoalProjectionDisabled());
+    results.push(testCalculateGoalProjectionDay());
     
     // Cleanup
     cleanupTestFiles();

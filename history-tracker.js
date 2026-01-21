@@ -9,7 +9,8 @@ const HistoryTrackerUtils = {
     parseHistoryFile,
     saveData,
     saveValue,
-    trimHistory
+    trimHistory,
+    calculateGoalProjection
 };
 
 /**
@@ -17,7 +18,7 @@ const HistoryTrackerUtils = {
  * Registers the history-tracker node type with Node-RED
  * @param {Object} RED - Node-RED runtime object
  */
-module.exports = function(RED) {
+function NodeREDModule(RED) {
     
     /**
      * History Tracker Node constructor
@@ -113,18 +114,62 @@ module.exports = function(RED) {
                 } else if (node.outputMode === 'hour_history') {
                     msg.topic = 'hour_history';
                     msg.payload = [data.currentHour, ...data.hourHistory];
+                    
+                    // Add goal projection if enabled
+                    if (node.yearlyGoal > 0) {
+                        const goalConfig = {
+                            yearlyGoal: node.yearlyGoal,
+                            goalStartMonth: node.goalStartMonth,
+                            goalEndMonth: node.goalEndMonth
+                        };
+                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'hour');
+                    }
+                    
                     node.send(msg);
                 } else if (node.outputMode === 'day_history') {
                     msg.topic = 'day_history';
                     msg.payload = [data.currentDay, ...data.dayHistory];
+                    
+                    // Add goal projection if enabled
+                    if (node.yearlyGoal > 0) {
+                        const goalConfig = {
+                            yearlyGoal: node.yearlyGoal,
+                            goalStartMonth: node.goalStartMonth,
+                            goalEndMonth: node.goalEndMonth
+                        };
+                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'day');
+                    }
+                    
                     node.send(msg);
                 } else if (node.outputMode === 'month_history') {
                     msg.topic = 'month_history';
                     msg.payload = [data.currentMonth, ...data.monthHistory];
+                    
+                    // Add goal projection if enabled
+                    if (node.yearlyGoal > 0) {
+                        const goalConfig = {
+                            yearlyGoal: node.yearlyGoal,
+                            goalStartMonth: node.goalStartMonth,
+                            goalEndMonth: node.goalEndMonth
+                        };
+                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'month');
+                    }
+                    
                     node.send(msg);
                 } else if (node.outputMode === 'year_history') {
                     msg.topic = 'year_history';
                     msg.payload = [data.currentYear, ...data.yearHistory];
+                    
+                    // Add goal projection if enabled
+                    if (node.yearlyGoal > 0) {
+                        const goalConfig = {
+                            yearlyGoal: node.yearlyGoal,
+                            goalStartMonth: node.goalStartMonth,
+                            goalEndMonth: node.goalEndMonth
+                        };
+                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'year');
+                    }
+                    
                     node.send(msg);
                 }
                 
@@ -141,6 +186,12 @@ module.exports = function(RED) {
     
     RED.nodes.registerType("history-tracker", HistoryTrackerNode);
 }
+
+// Export for Node-RED
+module.exports = NodeREDModule;
+
+// Export utility functions for testing
+module.exports.HistoryTrackerUtils = HistoryTrackerUtils;
 
 // Helper functions - defined outside module.exports for testability
 
@@ -784,7 +835,196 @@ function trimHistory(data, limits) {
     }
 }
 
-// Export utility functions for testing (when not used as Node-RED module)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports.HistoryTrackerUtils = HistoryTrackerUtils;
+/**
+ * Calculate goal projection for history arrays
+ * Distributes the remaining goal evenly across remaining periods in the goal timeframe
+ * @param {Object} data - The data object containing history arrays
+ * @param {Object} goalConfig - Goal configuration object
+ * @param {number} goalConfig.yearlyGoal - The yearly goal value
+ * @param {number} goalConfig.goalStartMonth - Start month (1-12)
+ * @param {number} goalConfig.goalEndMonth - End month (1-12)
+ * @param {string} historyType - Type of history ('hour', 'day', 'month', 'year')
+ * @returns {Array} Array of goal values for each period in the history
+ */
+function calculateGoalProjection(data, goalConfig, historyType) {
+    let { yearlyGoal, goalStartMonth, goalEndMonth } = goalConfig;
+    
+    // Validate inputs
+    if (!yearlyGoal || yearlyGoal <= 0) {
+        return []; // Goal disabled
+    }
+    
+    // Ensure goal months are numbers (they might come as strings from config)
+    goalStartMonth = parseInt(goalStartMonth);
+    goalEndMonth = parseInt(goalEndMonth);
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    
+    // Determine if we're in a goal period that spans year boundaries
+    const spansYears = goalStartMonth > goalEndMonth;
+    
+    // Calculate which goal period we're currently in (for spanning years only)
+    let goalPeriodYear;
+    if (spansYears) {
+        // Goal period spans years (e.g., Oct to Mar)
+        if (currentMonth >= goalStartMonth) {
+            goalPeriodYear = currentYear; // Current year's start
+        } else {
+            goalPeriodYear = currentYear - 1; // Started last year
+        }
+    }
+    
+    // Debug: Log current date info
+    // console.log(`[DEBUG calculateGoalProjection] Current: year=${currentYear}, month=${currentMonth}, spans=${spansYears}`);
+    // console.log(`[DEBUG calculateGoalProjection] Goal: start=${goalStartMonth}, end=${goalEndMonth}, yearlyGoal=${yearlyGoal}`);
+    
+    // Calculate total consumed in current goal period
+    let totalConsumed = 0;
+    const currentPeriod = data[`current${historyType.charAt(0).toUpperCase() + historyType.slice(1)}`];
+    const history = data[`${historyType}History`];
+    
+    // Helper to check if a period is within goal timeframe
+    const isInGoalPeriod = (period) => {
+        if (historyType === 'month') {
+            const match = period.match(/(\d{4})-(\d{2})/);
+            if (!match) return false;
+            const [, year, month] = match;
+            const y = parseInt(year);
+            const m = parseInt(month);
+            
+            // console.log(`[DEBUG isInGoalPeriod] Checking period ${period}: y=${y}, m=${m}, goalStart=${goalStartMonth}, goalEnd=${goalEndMonth}`);
+            
+            if (spansYears) {
+                // Goal period spans years (e.g., Oct to Mar)
+                if (y === goalPeriodYear && m >= goalStartMonth) return true;
+                if (y === goalPeriodYear + 1 && m <= goalEndMonth) return true;
+            } else {
+                // Check if in current goal period (same year)
+                // Only count if it's the current goal period year and within month range
+                const result = (y === currentYear && m >= goalStartMonth && m <= goalEndMonth);
+                // console.log(`[DEBUG isInGoalPeriod] Non-spanning: ${period} -> ${result} (y=${y} === currentYear=${currentYear}, m=${m} >= start=${goalStartMonth}, m=${m} <= end=${goalEndMonth})`);
+                if (y === currentYear && m >= goalStartMonth && m <= goalEndMonth) return true;
+            }
+            return false;
+        } else if (historyType === 'day') {
+            const match = period.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (!match) return false;
+            const [, year, month] = match;
+            const y = parseInt(year);
+            const m = parseInt(month);
+            
+            if (spansYears) {
+                if (y === goalPeriodYear && m >= goalStartMonth) return true;
+                if (y === goalPeriodYear + 1 && m <= goalEndMonth) return true;
+            } else {
+                if (y === currentYear && m >= goalStartMonth && m <= goalEndMonth) return true;
+            }
+            return false;
+        } else if (historyType === 'hour') {
+            const match = period.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})/);
+            if (!match) return false;
+            const [, year, month] = match;
+            const y = parseInt(year);
+            const m = parseInt(month);
+            
+            if (spansYears) {
+                if (y === goalPeriodYear && m >= goalStartMonth) return true;
+                if (y === goalPeriodYear + 1 && m <= goalEndMonth) return true;
+            } else {
+                if (y === currentYear && m >= goalStartMonth && m <= goalEndMonth) return true;
+            }
+            return false;
+        }
+        return false;
+    };
+    
+    // Sum up consumed values in current goal period
+    if (currentPeriod && currentPeriod.period && isInGoalPeriod(currentPeriod.period)) {
+        // console.log(`[DEBUG] Current period ${currentPeriod.period} IN GOAL, adding ${currentPeriod.value}`);
+        totalConsumed += currentPeriod.value || 0;
+    } else if (currentPeriod && currentPeriod.period) {
+        // console.log(`[DEBUG] Current period ${currentPeriod.period} NOT in goal`);
+    }
+    
+    for (const entry of history) {
+        if (entry.period && isInGoalPeriod(entry.period)) {
+            // console.log(`[DEBUG] History period ${entry.period} IN GOAL, adding ${entry.value}`);
+            totalConsumed += entry.value || 0;
+        } else if (entry.period) {
+            // console.log(`[DEBUG] History period ${entry.period} NOT in goal`);
+        }
+    }
+    
+    // console.log(`[DEBUG] Total consumed: ${totalConsumed}, Remaining goal: ${Math.max(0, yearlyGoal - totalConsumed)}`);
+    
+    // Calculate remaining goal
+    const remainingGoal = Math.max(0, yearlyGoal - totalConsumed);
+    
+    // Calculate remaining periods in goal timeframe
+    let remainingPeriods = 0;
+    
+    if (historyType === 'month') {
+        // Calculate remaining months in goal period
+        if (spansYears) {
+            // For spanning years, calculate from current month to end month of next year
+            const endDate = new Date(goalPeriodYear + 1, goalEndMonth, 1); // Note: using goalEndMonth directly (not -1) for "end of month" calculation
+            const currentDate = new Date(currentYear, currentMonth, 1); // Current month
+            let monthsLeft = (endDate.getFullYear() - currentDate.getFullYear()) * 12 + 
+                           (endDate.getMonth() - currentDate.getMonth());
+            remainingPeriods = Math.max(1, monthsLeft);
+        } else {
+            // For same year, only count months from current to end within goal period
+            // But only if we're within the goal period
+            if (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth) {
+                remainingPeriods = Math.max(1, goalEndMonth - currentMonth + 1);
+            } else if (currentMonth < goalStartMonth) {
+                // Haven't started yet
+                remainingPeriods = Math.max(1, goalEndMonth - goalStartMonth + 1);
+            } else {
+                // After goal period
+                remainingPeriods = 1;
+            }
+        }
+    } else if (historyType === 'day') {
+        // Calculate remaining days in current month (simplified)
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        remainingPeriods = Math.max(1, daysInMonth - now.getDate() + 1);
+    } else if (historyType === 'hour') {
+        // Calculate remaining hours in current day
+        remainingPeriods = Math.max(1, 24 - now.getHours());
+    } else if (historyType === 'year') {
+        remainingPeriods = 1; // For year view, just use 1
+    }
+    
+    // Calculate goal per period
+    const goalPerPeriod = remainingGoal / remainingPeriods;
+    
+    // Build goal projection array matching the structure of history array
+    const goalProjection = [];
+    
+    // Add current period goal
+    if (currentPeriod && currentPeriod.period) {
+        goalProjection.push({
+            period: currentPeriod.period,
+            value: goalPerPeriod,
+            timestamp: currentPeriod.timestamp,
+            timestampMs: currentPeriod.timestampMs,
+            isGoalProjection: true
+        });
+    }
+    
+    // Add historical period goals
+    for (const entry of history) {
+        goalProjection.push({
+            period: entry.period,
+            value: goalPerPeriod,
+            timestamp: entry.timestamp,
+            timestampMs: entry.timestampMs,
+            isGoalProjection: true
+        });
+    }
+    
+    return goalProjection;
 }
