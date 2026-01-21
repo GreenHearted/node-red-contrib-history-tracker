@@ -48,6 +48,11 @@ module.exports = function(RED) {
         node.maxMonthHistory = parseInt(config.maxMonthHistory) || 0;
         node.maxYearHistory = parseInt(config.maxYearHistory) || 0;
         
+        // Yearly goal configuration
+        node.yearlyGoal = parseFloat(config.yearlyGoal) || 0;
+        node.goalStartMonth = parseInt(config.goalStartMonth) || 1;
+        node.goalEndMonth = parseInt(config.goalEndMonth) || 12;
+        
         // Set status with version
         node.status({fill: "green", shape: "dot", text: `ready (v${VERSION})`});
         node.log(`History Tracker initialized - Version ${VERSION}`);
