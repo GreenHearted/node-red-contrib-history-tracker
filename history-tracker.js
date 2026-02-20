@@ -939,8 +939,8 @@ function calculateGoalProjection(data, goalConfig, historyType) {
                 // Haven't started yet
                 remainingPeriods = Math.max(1, goalEndMonth - goalStartMonth + 1);
             } else {
-                // After goal period
-                remainingPeriods = 1;
+                // After goal period - return empty projection
+                return [];
             }
         }
     } else if (historyType === 'day') {
@@ -957,17 +957,14 @@ function calculateGoalProjection(data, goalConfig, historyType) {
                 // Haven't started yet - use full goal period
                 endDate = new Date(goalPeriodYear, goalEndMonth, 0);
             } else {
-                // After goal period
-                remainingPeriods = 1;
-                endDate = null;
+                // After goal period - return empty projection
+                return [];
             }
         }
         
-        if (endDate) {
-            const currentDate = new Date(currentYear, currentMonth - 1, now.getDate());
-            const daysLeft = Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24));
-            remainingPeriods = Math.max(1, daysLeft);
-        }
+        const currentDate = new Date(currentYear, currentMonth - 1, now.getDate());
+        const daysLeft = Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24));
+        remainingPeriods = Math.max(1, daysLeft);
     } else if (historyType === 'hour') {
         // Calculate remaining hours in entire goal period (not just current day)
         let endDate;
@@ -982,34 +979,27 @@ function calculateGoalProjection(data, goalConfig, historyType) {
                 // Haven't started yet - use full goal period
                 endDate = new Date(goalPeriodYear, goalEndMonth, 0, 23, 59, 59);
             } else {
-                // After goal period
-                remainingPeriods = 1;
-                endDate = null;
+                // After goal period - return empty projection
+                return [];
             }
         }
         
-        if (endDate) {
-            const currentDate = new Date(currentYear, currentMonth - 1, now.getDate(), now.getHours());
-            const hoursLeft = Math.ceil((endDate - currentDate) / (1000 * 60 * 60));
-            remainingPeriods = Math.max(1, hoursLeft);
-        }
+        const currentDate = new Date(currentYear, currentMonth - 1, now.getDate(), now.getHours());
+        const hoursLeft = Math.ceil((endDate - currentDate) / (1000 * 60 * 60));
+        remainingPeriods = Math.max(1, hoursLeft);
     } else if (historyType === 'year') {
-        // For year view, use remaining months in goal period (same as month calculation)
-        if (spansYears) {
-            const goalEndYear = goalPeriodYear + 1;
-            const endDate = new Date(goalEndYear, goalEndMonth - 1, 1);
-            const currentDate = new Date(currentYear, currentMonth - 1, 1);
-            let monthsLeft = (endDate.getFullYear() - currentDate.getFullYear()) * 12 + 
-                           (endDate.getMonth() - currentDate.getMonth()) + 1;
-            remainingPeriods = Math.max(1, monthsLeft);
+        // For year view, show total remaining goal if we're in the goal period
+        // Check if current month is within the goal period
+        const inGoalPeriod = spansYears 
+            ? (currentMonth >= goalStartMonth || currentMonth <= goalEndMonth)
+            : (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth);
+        
+        if (inGoalPeriod) {
+            // We're in the goal period - show total remaining goal
+            remainingPeriods = 1;
         } else {
-            if (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth) {
-                remainingPeriods = Math.max(1, goalEndMonth - currentMonth + 1);
-            } else if (currentMonth < goalStartMonth) {
-                remainingPeriods = Math.max(1, goalEndMonth - goalStartMonth + 1);
-            } else {
-                remainingPeriods = 1;
-            }
+            // Outside goal period - return empty projection
+            return [];
         }
     }
     
