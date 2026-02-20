@@ -931,8 +931,8 @@ function testCalculateGoalProjectionMonth() {
             goalEndMonth: 12
         };
         
-        // Calculate goal projection for month history
-        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        // Calculate goal projection
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig);
         
         // Calculate total consumed (only current year months in goal period)
         let totalConsumed = 100.00; // current month
@@ -943,33 +943,27 @@ function testCalculateGoalProjectionMonth() {
         const remainingMonths = 12 - currentMonth + 1; // Months left in year including current
         const expectedGoalPerMonth = remainingGoal / remainingMonths;
         
-        // Expected projection length = 1 (current) + history length
-        const expectedLength = 1 + testData.monthHistory.length;
+        // Verify returned object structure
+        const isObject = typeof goalProjection === 'object' && !Array.isArray(goalProjection);
+        const hasGoalPerMonth = goalProjection.goalPerMonth !== undefined && goalProjection.goalPerMonth !== null;
+        const correctGoalValue = hasGoalPerMonth && Math.abs(goalProjection.goalPerMonth - expectedGoalPerMonth) < 0.01;
+        const hasMetadata = goalProjection.yearlyGoal === 1200.00 && 
+                           goalProjection.totalConsumed === totalConsumed &&
+                           goalProjection.remainingGoal === remainingGoal;
         
-        // Verify projection array structure
-        const correctLength = goalProjection.length === expectedLength;
-        const hasCurrentMonth = goalProjection[0].period === testData.currentMonth.period;
-        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerMonth) < 0.01;
-        const hasGoalFlag = goalProjection[0].isGoalProjection === true;
-        
-        // Verify all entries have the same goal value
-        const allSameValue = goalProjection.every(entry => 
-            Math.abs(entry.value - expectedGoalPerMonth) < 0.01
-        );
-        
-        const passed = correctLength && hasCurrentMonth && correctGoalValue && hasGoalFlag && allSameValue;
+        const passed = isObject && hasGoalPerMonth && correctGoalValue && hasMetadata;
         
         let details = '';
         if (!passed) {
-            details = `Length: ${goalProjection.length} (expected ${expectedLength}), `;
-            details += `Goal per month: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), `;
-            details += `Consumed: ${totalConsumed.toFixed(2)}, Remaining: ${remainingGoal.toFixed(2)}, Months left: ${remainingMonths}`;
+            details = `Return type: ${Array.isArray(goalProjection) ? 'Array' : typeof goalProjection}, `;
+            details += `Goal per month: ${goalProjection.goalPerMonth?.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), `;
+            details += `Consumed: ${goalProjection.totalConsumed?.toFixed(2)} (expected ${totalConsumed.toFixed(2)}), Remaining: ${remainingGoal.toFixed(2)}, Months left: ${remainingMonths}`;
         } else {
-            details = `Goal distributed correctly: ${expectedGoalPerMonth.toFixed(2)} per month for ${remainingMonths} remaining months (consumed: ${totalConsumed.toFixed(2)})`;
+            details = `Goal calculated correctly: ${expectedGoalPerMonth.toFixed(2)} per month for ${remainingMonths} remaining months (consumed: ${totalConsumed.toFixed(2)})`;
         }
         
         printTestResult(
-            'calculateGoalProjection should distribute remaining goal across months',
+            'calculateGoalProjection should return object with goalPerMonth value',
             passed,
             details
         );
@@ -1063,7 +1057,7 @@ function testCalculateGoalProjectionSpanningYears() {
             goalEndMonth: 3     // March
         };
         
-        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig);
         
         // Calculate total consumed (current month + all history in goal period)
         let totalConsumed = 50.00; // current month
@@ -1085,16 +1079,17 @@ function testCalculateGoalProjectionSpanningYears() {
         
         const expectedGoalPerMonth = remainingGoal / remainingMonths;
         
-        const expectedLength = 1 + testData.monthHistory.length;
-        const correctLength = goalProjection.length === expectedLength;
-        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerMonth) < 0.01;
+        // Verify returned object
+        const isObject = typeof goalProjection === 'object' && !Array.isArray(goalProjection);
+        const hasGoalPerMonth = goalProjection.goalPerMonth !== undefined && goalProjection.goalPerMonth !== null;
+        const correctGoalValue = hasGoalPerMonth && Math.abs(goalProjection.goalPerMonth - expectedGoalPerMonth) < 0.01;
         
-        const passed = correctLength && correctGoalValue;
+        const passed = isObject && hasGoalPerMonth && correctGoalValue;
         
         let details = '';
         if (!passed) {
-            details = `Length: ${goalProjection.length} (expected ${expectedLength}), `;
-            details += `Goal per month: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), `;
+            details = `Type: ${Array.isArray(goalProjection) ? 'Array' : typeof goalProjection}, `;
+            details += `Goal per month: ${goalProjection.goalPerMonth?.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), `;
             details += `Consumed: ${totalConsumed.toFixed(2)}, Remaining: ${remainingGoal.toFixed(2)}, Months left: ${remainingMonths}, Current month: ${currentMonth}`;
         } else {
             details = `Goal spanning years handled correctly: ${expectedGoalPerMonth.toFixed(2)} per month (current month: ${currentMonth})`;
@@ -1158,7 +1153,7 @@ function testCalculateGoalProjectionExceeded() {
             goalEndMonth: 12
         };
         
-        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig);
         
         // Calculate consumed and remaining based on current month
         const totalConsumed = currentMonth > 1 ? 1100.00 : 600.00;
@@ -1166,18 +1161,18 @@ function testCalculateGoalProjectionExceeded() {
         const remainingMonths = 12 - currentMonth + 1;
         const expectedGoalPerMonth = remainingGoal / remainingMonths;
         
-        // Expected length: 1 (current) + (1 if currentMonth > 1, else 0)
-        const expectedLength = currentMonth > 1 ? 2 : 1;
-        const correctLength = goalProjection.length === expectedLength;
-        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerMonth) < 0.01;
+        // Verify returned object structure
+        const isObject = typeof goalProjection === 'object' && !Array.isArray(goalProjection);
+        const hasGoalPerMonth = goalProjection.goalPerMonth !== undefined && goalProjection.goalPerMonth !== null;
+        const correctGoalValue = hasGoalPerMonth && Math.abs(goalProjection.goalPerMonth - expectedGoalPerMonth) < 0.01;
         
-        const passed = correctLength && correctGoalValue;
+        const passed = isObject && hasGoalPerMonth && correctGoalValue;
         
         printTestResult(
             'calculateGoalProjection should distribute remaining goal (or 0 if exceeded)',
             passed,
             passed ? `Goal distributed correctly: ${expectedGoalPerMonth.toFixed(2)} per month (consumed: ${totalConsumed.toFixed(2)})` : 
-                `Goal per month: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)}), Length: ${goalProjection.length} (expected ${expectedLength})`
+                `Goal per month: ${goalProjection.goalPerMonth?.toFixed(2)} (expected ${expectedGoalPerMonth.toFixed(2)})`
         );
         
         return passed;
@@ -1221,15 +1216,19 @@ function testCalculateGoalProjectionDisabled() {
             goalEndMonth: 12
         };
         
-        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'month');
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig);
         
-        const passed = goalProjection.length === 0;
+        // Should return object with null values
+        const passed = typeof goalProjection === 'object' && 
+                      goalProjection.goalPerDay === null &&
+                      goalProjection.goalPerMonth === null &&
+                      goalProjection.goalPerYear === null;
         
         printTestResult(
-            'calculateGoalProjection should return empty array when goal = 0',
+            'calculateGoalProjection should return object with null values when goal = 0',
             passed,
-            passed ? 'Empty array returned when goal disabled' : 
-                `Array length: ${goalProjection.length} (expected 0)`
+            passed ? 'Object with null goal values returned when goal disabled' : 
+                `Got: ${JSON.stringify(goalProjection)}`
         );
         
         return passed;
@@ -1292,14 +1291,14 @@ function testCalculateGoalProjectionDay() {
             });
         }
         
-        // Goal configuration (using month-based goal period, but testing day output)
+        // Goal configuration
         const goalConfig = {
             yearlyGoal: 1200.00,
             goalStartMonth: 1,
             goalEndMonth: 12
         };
         
-        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig, 'day');
+        const goalProjection = HistoryTrackerUtils.calculateGoalProjection(testData, goalConfig);
         
         // Calculate consumption using MONTH data (not day data)
         let totalConsumed = 100.00; // current month
@@ -1307,27 +1306,25 @@ function testCalculateGoalProjectionDay() {
         
         const remainingGoal = 1200.00 - totalConsumed;
         
-        // For day history, remaining periods = days left until end of goal period
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        // For day projection, calculate remaining days
         const lastDayOfGoalPeriod = new Date(currentYear, 12, 0); // Last day of December
         const currentDate = new Date(currentYear, currentMonth - 1, currentDay);
-        const remainingDays = Math.ceil((lastDayOfGoalPeriod - currentDate) / (1000 * 60 * 60 * 24));
+        const remainingDays = Math.max(1, Math.ceil((lastDayOfGoalPeriod - currentDate) / (1000 * 60 * 60 * 24)));
         
         const expectedGoalPerDay = remainingGoal / remainingDays;
         
-        const correctLength = goalProjection.length === 2; // current day + 1 history
-        const hasCorrectStructure = goalProjection[0].period === testData.currentDay.period &&
-                                    goalProjection[0].isGoalProjection === true &&
-                                    typeof goalProjection[0].value === 'number';
-        const correctGoalValue = Math.abs(goalProjection[0].value - expectedGoalPerDay) < 0.01;
+        // Verify returned object has goalPerDay
+        const isObject = typeof goalProjection === 'object' && !Array.isArray(goalProjection);
+        const hasGoalPerDay = goalProjection.goalPerDay !== undefined && goalProjection.goalPerDay !== null;
+        const correctGoalValue = hasGoalPerDay && Math.abs(goalProjection.goalPerDay - expectedGoalPerDay) < 0.01;
         
-        const passed = correctLength && hasCorrectStructure && correctGoalValue;
+        const passed = isObject && hasGoalPerDay && correctGoalValue;
         
         printTestResult(
-            'calculateGoalProjection should work for day history',
+            'calculateGoalProjection should return object with goalPerDay value',
             passed,
-            passed ? `Day projection created: ${expectedGoalPerDay.toFixed(2)} per day for ${remainingDays} remaining days (consumed: ${totalConsumed.toFixed(2)} from month data)` : 
-                `Length: ${goalProjection.length} (expected 2), Goal/day: ${goalProjection[0]?.value.toFixed(2)} (expected ${expectedGoalPerDay.toFixed(2)})`
+            passed ? `Day projection calculated: ${expectedGoalPerDay.toFixed(2)} per day for ${remainingDays} remaining days (consumed: ${totalConsumed.toFixed(2)} from month data)` : 
+                `Type: ${Array.isArray(goalProjection) ? 'Array' : typeof goalProjection}, Goal/day: ${goalProjection.goalPerDay?.toFixed(2)} (expected ${expectedGoalPerDay.toFixed(2)})`
         );
         
         return passed;

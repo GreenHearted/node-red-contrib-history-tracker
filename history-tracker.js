@@ -76,7 +76,11 @@ function NodeREDModule(RED) {
                 }
                 
                 // Process the value
-                const data = saveValue(node.filepath, value, node.unit);
+                const data = saveValue(node.filepath, value, node.unit, {
+                    yearlyGoal: node.yearlyGoal,
+                    goalStartMonth: node.goalStartMonth,
+                    goalEndMonth: node.goalEndMonth
+                });
                 
                 // Trim history arrays to configured limits
                 trimHistory(data, {
@@ -115,62 +119,18 @@ function NodeREDModule(RED) {
                 } else if (node.outputMode === 'hour_history') {
                     msg.topic = 'hour_history';
                     msg.payload = [data.currentHour, ...data.hourHistory];
-                    
-                    // Add goal projection if enabled
-                    if (node.yearlyGoal > 0) {
-                        const goalConfig = {
-                            yearlyGoal: node.yearlyGoal,
-                            goalStartMonth: node.goalStartMonth,
-                            goalEndMonth: node.goalEndMonth
-                        };
-                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'hour');
-                    }
-                    
                     node.send(msg);
                 } else if (node.outputMode === 'day_history') {
                     msg.topic = 'day_history';
                     msg.payload = [data.currentDay, ...data.dayHistory];
-                    
-                    // Add goal projection if enabled
-                    if (node.yearlyGoal > 0) {
-                        const goalConfig = {
-                            yearlyGoal: node.yearlyGoal,
-                            goalStartMonth: node.goalStartMonth,
-                            goalEndMonth: node.goalEndMonth
-                        };
-                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'day');
-                    }
-                    
                     node.send(msg);
                 } else if (node.outputMode === 'month_history') {
                     msg.topic = 'month_history';
                     msg.payload = [data.currentMonth, ...data.monthHistory];
-                    
-                    // Add goal projection if enabled
-                    if (node.yearlyGoal > 0) {
-                        const goalConfig = {
-                            yearlyGoal: node.yearlyGoal,
-                            goalStartMonth: node.goalStartMonth,
-                            goalEndMonth: node.goalEndMonth
-                        };
-                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'month');
-                    }
-                    
                     node.send(msg);
                 } else if (node.outputMode === 'year_history') {
                     msg.topic = 'year_history';
                     msg.payload = [data.currentYear, ...data.yearHistory];
-                    
-                    // Add goal projection if enabled
-                    if (node.yearlyGoal > 0) {
-                        const goalConfig = {
-                            yearlyGoal: node.yearlyGoal,
-                            goalStartMonth: node.goalStartMonth,
-                            goalEndMonth: node.goalEndMonth
-                        };
-                        msg.goalProjection = calculateGoalProjection(data, goalConfig, 'year');
-                    }
-                    
                     node.send(msg);
                 }
                 
@@ -221,9 +181,10 @@ function fillPeriodGap(data, historyKey, currentPeriod, periodDiff, generateMiss
  * @param {string} filepath - Path to the history file
  * @param {number} value - The new value to save
  * @param {string} unit - The unit of measurement (e.g., 'Liter')
+ * @param {Object} goalConfig - Optional goal configuration for calculating goal per period
  * @returns {Object} The updated data object with all history information
  */
-function saveValue(filepath, value, unit) {
+function saveValue(filepath, value, unit, goalConfig) {
     const now = new Date();
     
     // Create ISO-like timestamp: YYYY-MM-DDTHH:MM:SS
@@ -325,7 +286,13 @@ function saveValue(filepath, value, unit) {
     const dayKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
     
     if (data.currentDay.period !== dayKey) {
-        // New day detected
+        // New day detected - calculate NEW goal first before moving old day to history
+        let newDayGoal = null;
+        if (goalConfig && goalConfig.yearlyGoal > 0) {
+            const goalProjection = calculateGoalProjection(data, goalConfig);
+            newDayGoal = goalProjection.goalPerDay;
+        }
+        
         if (data.currentDay.period) {
             // Calculate min/max from hour history for this day
             const dayPrefix = data.currentDay.period;
@@ -368,7 +335,7 @@ function saveValue(filepath, value, unit) {
                         };
                     });
                 } else {
-                    // Only one day has passed - normal behavior
+                    // Only one day has passed - move current day to history with its goal
                     data.dayHistory.unshift({ ...data.currentDay });
                 }
             } else {
@@ -377,13 +344,16 @@ function saveValue(filepath, value, unit) {
             }
         }
         
-        // New day starts at 0 and adds current difference
+        // New day starts at 0 and adds current difference with NEW goal
         data.currentDay = {
             period: dayKey,
             value: difference,
             timestamp: timestamp,
             timestampMs: now.getTime()
         };
+        if (newDayGoal !== null) {
+            data.currentDay.goal = newDayGoal;
+        }
     } else {
         // Same day - add difference
         if (data.currentDay.value === undefined) {
@@ -397,7 +367,13 @@ function saveValue(filepath, value, unit) {
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     
     if (data.currentMonth.period !== monthKey) {
-        // New month detected
+        // New month detected - calculate NEW goal first before moving old month to history
+        let newMonthGoal = null;
+        if (goalConfig && goalConfig.yearlyGoal > 0) {
+            const goalProjection = calculateGoalProjection(data, goalConfig);
+            newMonthGoal = goalProjection.goalPerMonth;
+        }
+        
         if (data.currentMonth.period) {
             // Calculate min/max from day history for this month
             const monthPrefix = data.currentMonth.period;
@@ -439,7 +415,7 @@ function saveValue(filepath, value, unit) {
                         };
                     });
                 } else {
-                    // Only one month has passed - normal behavior
+                    // Only one month has passed - move current month to history with its goal
                     data.monthHistory.unshift({ ...data.currentMonth });
                 }
             } else {
@@ -448,13 +424,16 @@ function saveValue(filepath, value, unit) {
             }
         }
         
-        // New month starts at 0 and adds current difference
+        // New month starts at 0 and adds current difference with NEW goal
         data.currentMonth = {
             period: monthKey,
             value: difference,
             timestamp: timestamp,
             timestampMs: now.getTime()
         };
+        if (newMonthGoal !== null) {
+            data.currentMonth.goal = newMonthGoal;
+        }
     } else {
         // Same month - add difference
         if (data.currentMonth.value === undefined) {
@@ -468,7 +447,13 @@ function saveValue(filepath, value, unit) {
     const yearKey = `${currentYear}`;
     
     if (data.currentYear.period !== yearKey) {
-        // New year detected
+        // New year detected - calculate NEW goal first before moving old year to history
+        let newYearGoal = null;
+        if (goalConfig && goalConfig.yearlyGoal > 0) {
+            const goalProjection = calculateGoalProjection(data, goalConfig);
+            newYearGoal = goalProjection.goalPerYear;
+        }
+        
         if (data.currentYear.period) {
             // Calculate min/max from month history for this year
             const yearPrefix = data.currentYear.period;
@@ -501,18 +486,21 @@ function saveValue(filepath, value, unit) {
                     };
                 });
             } else {
-                // Only one year has passed - normal behavior
+                // Only one year has passed - move current year to history with its goal
                 data.yearHistory.unshift({ ...data.currentYear });
             }
         }
         
-        // New year starts at 0 and adds current difference
+        // New year starts at 0 and adds current difference with NEW goal
         data.currentYear = {
             period: yearKey,
             value: difference,
             timestamp: timestamp,
             timestampMs: now.getTime()
         };
+        if (newYearGoal !== null) {
+            data.currentYear.goal = newYearGoal;
+        }
     } else {
         // Same year - add difference
         if (data.currentYear.value === undefined) {
@@ -521,6 +509,12 @@ function saveValue(filepath, value, unit) {
         data.currentYear.value += difference;
         data.currentYear.timestamp = timestamp;
         data.currentYear.timestampMs = now.getTime();
+    }
+    
+    // Store goal config in data for file header (if configured)
+    if (goalConfig && goalConfig.yearlyGoal > 0) {
+        const goalProjection = calculateGoalProjection(data, goalConfig);
+        data.goalConfig = goalProjection;
     }
     
     saveData(filepath, data, unit);
@@ -616,9 +610,9 @@ function parseHistoryFile(content) {
             continue;
         }
         
-        // Parse compact format: T: timestamp  -  P: period  -  V: value unit  -  Min: min  -  Max: max
+        // Parse compact format: T: timestamp  -  P: period  -  V: value unit  -  Min: min  -  Max: max  -  G: goal
         // For lastValue: T: timestamp  -  V: value unit
-        const compactMatch = line.match(/T:\s*(.+?)\s*-\s*(?:P:\s*(.+?)\s*-\s*)?V:\s*([\d.]+)\s*\w*(?:\s*-\s*Min:\s*([\d.]+)\s*-\s*Max:\s*([\d.]+))?/);
+        const compactMatch = line.match(/T:\s*(.+?)\s*-\s*(?:P:\s*(.+?)\s*-\s*)?V:\s*([\d.]+)\s*\w*(?:\s*-\s*Min:\s*([\d.]+)\s*-\s*Max:\s*([\d.]+))?(?:\s*-\s*G:\s*([\d.]+))?/);
         
         if (compactMatch && currentSection) {
             const timestamp = compactMatch[1].trim();
@@ -626,6 +620,7 @@ function parseHistoryFile(content) {
             const value = parseFloat(compactMatch[3]);
             const min = compactMatch[4] ? parseFloat(compactMatch[4]) : undefined;
             const max = compactMatch[5] ? parseFloat(compactMatch[5]) : undefined;
+            const goal = compactMatch[6] ? parseFloat(compactMatch[6]) : undefined;
             
             // Parse ISO timestamp format to milliseconds
             // Format: "YYYY-MM-DDTHH:MM:SS" or legacy "DD.MM.YYYY, HH:MM:SS"
@@ -659,6 +654,7 @@ function parseHistoryFile(content) {
                 };
                 if (min !== undefined) entry.min = min;
                 if (max !== undefined) entry.max = max;
+                if (goal !== undefined) entry.goal = goal;
                 data[currentSection].push(entry);
             } else if (currentSection === 'lastValue') {
                 data[currentSection] = {
@@ -675,6 +671,7 @@ function parseHistoryFile(content) {
                 };
                 if (min !== undefined) entry.min = min;
                 if (max !== undefined) entry.max = max;
+                if (goal !== undefined) entry.goal = goal;
                 data[currentSection] = entry;
             }
         }
@@ -696,6 +693,17 @@ function saveData(filepath, data, unit) {
     // Add version header
     content += '# File created by History Tracker version ' + VERSION + '\n';
     content += '# Timestamp: ' + new Date().toISOString() + '\n';
+    
+    // Add goal configuration if present
+    if (data.goalConfig) {
+        content += '#\n';
+        content += '# Goal Configuration:\n';
+        content += `#   Goal: ${data.goalConfig.yearlyGoal.toFixed(2)} ${unit}\n`;
+        content += `#   Period: Month ${data.goalConfig.goalStartMonth} to Month ${data.goalConfig.goalEndMonth}\n`;
+        content += `#   Consumed: ${data.goalConfig.totalConsumed.toFixed(2)} ${unit}\n`;
+        content += `#   Remaining: ${data.goalConfig.remainingGoal.toFixed(2)} ${unit}\n`;
+    }
+    
     content += '\n';
     
     content += '='.repeat(60) + '\n';
@@ -732,6 +740,9 @@ function saveData(filepath, data, unit) {
         if (data.currentDay.min !== undefined && data.currentDay.max !== undefined) {
             content += `  -  Min: ${data.currentDay.min.toFixed(2)}  -  Max: ${data.currentDay.max.toFixed(2)}`;
         }
+        if (data.currentDay.goal !== undefined) {
+            content += `  -  G: ${data.currentDay.goal.toFixed(2)}`;
+        }
         content += '\n';
     }
     content += '\n\n';
@@ -744,6 +755,9 @@ function saveData(filepath, data, unit) {
             content += `T: ${day.timestamp}  -  P: ${day.period}  -  V: ${day.value.toFixed(2)} ${unit}`;
             if (day.min !== undefined && day.max !== undefined) {
                 content += `  -  Min: ${day.min.toFixed(2)}  -  Max: ${day.max.toFixed(2)}`;
+            }
+            if (day.goal !== undefined) {
+                content += `  -  G: ${day.goal.toFixed(2)}`;
             }
             content += '\n';
         });
@@ -758,6 +772,9 @@ function saveData(filepath, data, unit) {
         if (data.currentMonth.min !== undefined && data.currentMonth.max !== undefined) {
             content += `  -  Min: ${data.currentMonth.min.toFixed(2)}  -  Max: ${data.currentMonth.max.toFixed(2)}`;
         }
+        if (data.currentMonth.goal !== undefined) {
+            content += `  -  G: ${data.currentMonth.goal.toFixed(2)}`;
+        }
         content += '\n';
     }
     content += '\n\n';
@@ -770,6 +787,9 @@ function saveData(filepath, data, unit) {
             content += `T: ${month.timestamp}  -  P: ${month.period}  -  V: ${month.value.toFixed(2)} ${unit}`;
             if (month.min !== undefined && month.max !== undefined) {
                 content += `  -  Min: ${month.min.toFixed(2)}  -  Max: ${month.max.toFixed(2)}`;
+            }
+            if (month.goal !== undefined) {
+                content += `  -  G: ${month.goal.toFixed(2)}`;
             }
             content += '\n';
         });
@@ -784,6 +804,9 @@ function saveData(filepath, data, unit) {
         if (data.currentYear.min !== undefined && data.currentYear.max !== undefined) {
             content += `  -  Min: ${data.currentYear.min.toFixed(2)}  -  Max: ${data.currentYear.max.toFixed(2)}`;
         }
+        if (data.currentYear.goal !== undefined) {
+            content += `  -  G: ${data.currentYear.goal.toFixed(2)}`;
+        }
         content += '\n';
     }
     content += '\n\n';
@@ -796,6 +819,9 @@ function saveData(filepath, data, unit) {
             content += `T: ${year.timestamp}  -  P: ${year.period}  -  V: ${year.value.toFixed(2)} ${unit}`;
             if (year.min !== undefined && year.max !== undefined) {
                 content += `  -  Min: ${year.min.toFixed(2)}  -  Max: ${year.max.toFixed(2)}`;
+            }
+            if (year.goal !== undefined) {
+                content += `  -  G: ${year.goal.toFixed(2)}`;
             }
             content += '\n';
         });
@@ -837,7 +863,7 @@ function trimHistory(data, limits) {
 }
 
 /**
- * Calculate goal projection for history arrays
+ * Calculate goal projection values for day, month, and year periods
  * Uses ONLY month-level data (monthHistory + currentMonth) to calculate consumption
  * Distributes the remaining goal evenly across remaining periods in the goal timeframe
  * @param {Object} data - The data object containing history arrays
@@ -845,15 +871,23 @@ function trimHistory(data, limits) {
  * @param {number} goalConfig.yearlyGoal - The yearly goal value
  * @param {number} goalConfig.goalStartMonth - Start month (1-12)
  * @param {number} goalConfig.goalEndMonth - End month (1-12)
- * @param {string} historyType - Type of history ('hour', 'day', 'month', 'year')
- * @returns {Array} Array of goal values for each period in the history
+ * @returns {Object} Object containing goal values for each period type and configuration info
  */
-function calculateGoalProjection(data, goalConfig, historyType) {
+function calculateGoalProjection(data, goalConfig) {
     let { yearlyGoal, goalStartMonth, goalEndMonth } = goalConfig;
     
     // Validate inputs
     if (!yearlyGoal || yearlyGoal <= 0) {
-        return []; // Goal disabled
+        return {
+            goalPerDay: null,
+            goalPerMonth: null,
+            goalPerYear: null,
+            yearlyGoal: 0,
+            goalStartMonth: goalStartMonth,
+            goalEndMonth: goalEndMonth,
+            totalConsumed: 0,
+            remainingGoal: 0
+        };
     }
     
     // Ensure goal months are numbers (they might come as strings from config)
@@ -917,121 +951,61 @@ function calculateGoalProjection(data, goalConfig, historyType) {
     // Calculate remaining goal
     const remainingGoal = Math.max(0, yearlyGoal - totalConsumed);
     
-    // Calculate remaining periods in goal timeframe based on historyType
-    let remainingPeriods = 0;
+    // Check if we're in the goal period
+    const inGoalPeriod = spansYears 
+        ? (currentMonth >= goalStartMonth || currentMonth <= goalEndMonth)
+        : (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth);
     
-    if (historyType === 'month') {
-        // Calculate remaining months in goal period
-        if (spansYears) {
-            // For spanning years, calculate from current month to end month
-            // End month is in the year after goalPeriodYear started
-            const goalEndYear = goalPeriodYear + 1;
-            const endDate = new Date(goalEndYear, goalEndMonth - 1, 1);
-            const currentDate = new Date(currentYear, currentMonth - 1, 1);
-            let monthsLeft = (endDate.getFullYear() - currentDate.getFullYear()) * 12 + 
-                           (endDate.getMonth() - currentDate.getMonth()) + 1;
-            remainingPeriods = Math.max(1, monthsLeft);
-        } else {
-            // For same year, only count months from current to end within goal period
-            if (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth) {
-                remainingPeriods = Math.max(1, goalEndMonth - currentMonth + 1);
-            } else if (currentMonth < goalStartMonth) {
-                // Haven't started yet
-                remainingPeriods = Math.max(1, goalEndMonth - goalStartMonth + 1);
-            } else {
-                // After goal period - return empty projection
-                return [];
-            }
-        }
-    } else if (historyType === 'day') {
-        // Calculate remaining days in entire goal period (not just current month)
-        let endDate;
-        if (spansYears) {
-            // Goal period ends in next year
-            endDate = new Date(goalPeriodYear + 1, goalEndMonth, 0); // Last day of end month
-        } else {
-            // Goal period ends in same year
-            if (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth) {
-                endDate = new Date(goalPeriodYear, goalEndMonth, 0); // Last day of end month
-            } else if (currentMonth < goalStartMonth) {
-                // Haven't started yet - use full goal period
-                endDate = new Date(goalPeriodYear, goalEndMonth, 0);
-            } else {
-                // After goal period - return empty projection
-                return [];
-            }
-        }
-        
-        const currentDate = new Date(currentYear, currentMonth - 1, now.getDate());
-        const daysLeft = Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24));
-        remainingPeriods = Math.max(1, daysLeft);
-    } else if (historyType === 'hour') {
-        // Calculate remaining hours in entire goal period (not just current day)
-        let endDate;
-        if (spansYears) {
-            // Goal period ends in next year
-            endDate = new Date(goalPeriodYear + 1, goalEndMonth, 0, 23, 59, 59); // Last hour of end month
-        } else {
-            // Goal period ends in same year
-            if (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth) {
-                endDate = new Date(goalPeriodYear, goalEndMonth, 0, 23, 59, 59); // Last hour of end month
-            } else if (currentMonth < goalStartMonth) {
-                // Haven't started yet - use full goal period
-                endDate = new Date(goalPeriodYear, goalEndMonth, 0, 23, 59, 59);
-            } else {
-                // After goal period - return empty projection
-                return [];
-            }
-        }
-        
-        const currentDate = new Date(currentYear, currentMonth - 1, now.getDate(), now.getHours());
-        const hoursLeft = Math.ceil((endDate - currentDate) / (1000 * 60 * 60));
-        remainingPeriods = Math.max(1, hoursLeft);
-    } else if (historyType === 'year') {
-        // For year view, show total remaining goal if we're in the goal period
-        // Check if current month is within the goal period
-        const inGoalPeriod = spansYears 
-            ? (currentMonth >= goalStartMonth || currentMonth <= goalEndMonth)
-            : (currentMonth >= goalStartMonth && currentMonth <= goalEndMonth);
-        
-        if (inGoalPeriod) {
-            // We're in the goal period - show total remaining goal
-            remainingPeriods = 1;
-        } else {
-            // Outside goal period - return empty projection
-            return [];
-        }
+    if (!inGoalPeriod) {
+        // Outside goal period - no projections
+        return {
+            goalPerDay: null,
+            goalPerMonth: null,
+            goalPerYear: null,
+            yearlyGoal: yearlyGoal,
+            goalStartMonth: goalStartMonth,
+            goalEndMonth: goalEndMonth,
+            totalConsumed: totalConsumed,
+            remainingGoal: remainingGoal
+        };
     }
+    
+    // Calculate remaining months in goal period
+    let remainingMonths;
+    if (spansYears) {
+        const goalEndYear = goalPeriodYear + 1;
+        const endDate = new Date(goalEndYear, goalEndMonth - 1, 1);
+        const currentDate = new Date(currentYear, currentMonth - 1, 1);
+        remainingMonths = (endDate.getFullYear() - currentDate.getFullYear()) * 12 + 
+                       (endDate.getMonth() - currentDate.getMonth()) + 1;
+    } else {
+        remainingMonths = goalEndMonth - currentMonth + 1;
+    }
+    remainingMonths = Math.max(1, remainingMonths);
+    
+    // Calculate remaining days in goal period
+    let endDate;
+    if (spansYears) {
+        endDate = new Date(goalPeriodYear + 1, goalEndMonth, 0); // Last day of end month
+    } else {
+        endDate = new Date(goalPeriodYear, goalEndMonth, 0); // Last day of end month
+    }
+    const currentDate = new Date(currentYear, currentMonth - 1, now.getDate());
+    const remainingDays = Math.max(1, Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24)));
     
     // Calculate goal per period
-    const goalPerPeriod = remainingGoal / remainingPeriods;
+    const goalPerDay = remainingGoal / remainingDays;
+    const goalPerMonth = remainingGoal / remainingMonths;
+    const goalPerYear = remainingGoal; // Total remaining for year view
     
-    // Build goal projection array matching the structure of the requested history array
-    const goalProjection = [];
-    const currentPeriod = data[`current${historyType.charAt(0).toUpperCase() + historyType.slice(1)}`];
-    const history = data[`${historyType}History`];
-    
-    // Add current period goal
-    if (currentPeriod && currentPeriod.period) {
-        goalProjection.push({
-            period: currentPeriod.period,
-            value: goalPerPeriod,
-            timestamp: currentPeriod.timestamp,
-            timestampMs: currentPeriod.timestampMs,
-            isGoalProjection: true
-        });
-    }
-    
-    // Add historical period goals
-    for (const entry of history) {
-        goalProjection.push({
-            period: entry.period,
-            value: goalPerPeriod,
-            timestamp: entry.timestamp,
-            timestampMs: entry.timestampMs,
-            isGoalProjection: true
-        });
-    }
-    
-    return goalProjection;
+    return {
+        goalPerDay: goalPerDay,
+        goalPerMonth: goalPerMonth,
+        goalPerYear: goalPerYear,
+        yearlyGoal: yearlyGoal,
+        goalStartMonth: goalStartMonth,
+        goalEndMonth: goalEndMonth,
+        totalConsumed: totalConsumed,
+        remainingGoal: remainingGoal
+    };
 }
