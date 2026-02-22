@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.0.1";
+const VERSION = "2.0.2";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
@@ -58,6 +58,39 @@ function NodeREDModule(RED) {
         // Set status with version
         node.status({fill: "green", shape: "dot", text: `ready (v${VERSION})`});
         node.log(`History Tracker initialized - Version ${VERSION}`);
+        
+        // On startup: Calculate and update goals for existing current periods if goal is configured
+        if (node.yearlyGoal > 0) {
+            try {
+                const data = loadData(node.filepath);
+                const goalConfig = {
+                    yearlyGoal: node.yearlyGoal,
+                    goalStartMonth: node.goalStartMonth,
+                    goalEndMonth: node.goalEndMonth
+                };
+                const goalProjection = calculateGoalProjection(data, goalConfig);
+                
+                // Update current periods with new goal calculations
+                if (goalProjection.goalPerDay !== null && data.currentDay.period) {
+                    data.currentDay.goal = goalProjection.goalPerDay;
+                }
+                if (goalProjection.goalPerMonth !== null && data.currentMonth.period) {
+                    data.currentMonth.goal = goalProjection.goalPerMonth;
+                }
+                if (goalProjection.goalPerYear !== null && data.currentYear.period) {
+                    data.currentYear.goal = goalProjection.goalPerYear;
+                }
+                
+                // Store goal config for file header
+                data.goalConfig = goalProjection;
+                
+                // Save updated data
+                saveData(node.filepath, data, node.unit);
+                node.log('Goal values updated for current periods on startup');
+            } catch (error) {
+                node.warn('Could not update goals on startup: ' + error.message);
+            }
+        }
         
         node.on('input', function(msg) {
             try {
