@@ -150,68 +150,79 @@ function NodeREDModule(RED) {
                     msg.payload = data;
                     node.send(msg);
                 } else if (node.outputMode === 'hour_history') {
-                    // Format for Dashboard 2.0 chart: separate series arrays
+                    // Format for Dashboard 2.0 chart: flat array of objects
                     const historyData = [data.currentHour, ...data.hourHistory];
-                    msg.payload = {
-                        series: ['actual'],
-                        data: [
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.value
-                            }))
-                        ]
-                    };
+                    const chartPayload = [];
+                    
+                    historyData.forEach(entry => {
+                        chartPayload.push({
+                            label: 'actual',
+                            time: entry.period,
+                            val: entry.value
+                        });
+                    });
+                    
+                    msg.payload = chartPayload;
                     node.send(msg);
                 } else if (node.outputMode === 'day_history') {
-                    // Format for Dashboard 2.0 chart: separate series arrays
+                    // Format for Dashboard 2.0 chart: flat array of objects
                     const historyData = [data.currentDay, ...data.dayHistory];
-                    msg.payload = {
-                        series: ['actual', 'goal'],
-                        data: [
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.value
-                            })),
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.goal || null
-                            }))
-                        ]
-                    };
+                    const chartPayload = [];
+                    
+                    historyData.forEach(entry => {
+                        chartPayload.push({
+                            label: 'actual',
+                            time: entry.period,
+                            val: entry.value
+                        });
+                        chartPayload.push({
+                            label: 'goal',
+                            time: entry.period,
+                            val: entry.goal !== undefined ? entry.goal : null
+                        });
+                    });
+                    
+                    msg.payload = chartPayload;
                     node.send(msg);
                 } else if (node.outputMode === 'month_history') {
-                    // Format for Dashboard 2.0 chart: separate series arrays
+                    // Format for Dashboard 2.0 chart: flat array of objects
                     const historyData = [data.currentMonth, ...data.monthHistory];
-                    msg.payload = {
-                        series: ['actual', 'goal'],
-                        data: [
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.value
-                            })),
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.goal || null
-                            }))
-                        ]
-                    };
+                    const chartPayload = [];
+                    
+                    historyData.forEach(entry => {
+                        chartPayload.push({
+                            label: 'actual',
+                            time: entry.period,
+                            val: entry.value
+                        });
+                        chartPayload.push({
+                            label: 'goal',
+                            time: entry.period,
+                            val: entry.goal !== undefined ? entry.goal : null
+                        });
+                    });
+                    
+                    msg.payload = chartPayload;
                     node.send(msg);
                 } else if (node.outputMode === 'year_history') {
-                    // Format for Dashboard 2.0 chart: separate series arrays
+                    // Format for Dashboard 2.0 chart: flat array of objects
                     const historyData = [data.currentYear, ...data.yearHistory];
-                    msg.payload = {
-                        series: ['actual', 'goal'],
-                        data: [
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.value
-                            })),
-                            historyData.map(entry => ({
-                                x: entry.period,
-                                y: entry.goal || null
-                            }))
-                        ]
-                    };
+                    const chartPayload = [];
+                    
+                    historyData.forEach(entry => {
+                        chartPayload.push({
+                            label: 'actual',
+                            time: entry.period,
+                            val: entry.value
+                        });
+                        chartPayload.push({
+                            label: 'goal',
+                            time: entry.period,
+                            val: entry.goal !== undefined ? entry.goal : null
+                        });
+                    });
+                    
+                    msg.payload = chartPayload;
                     node.send(msg);
                 }
                 
