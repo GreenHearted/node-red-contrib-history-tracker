@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.0.2";
+const VERSION = "2.0.3";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
