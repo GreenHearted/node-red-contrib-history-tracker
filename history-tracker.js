@@ -150,20 +150,68 @@ function NodeREDModule(RED) {
                     msg.payload = data;
                     node.send(msg);
                 } else if (node.outputMode === 'hour_history') {
-                    msg.topic = 'hour_history';
-                    msg.payload = [data.currentHour, ...data.hourHistory];
+                    // Format for Dashboard 2.0 chart: separate series arrays
+                    const historyData = [data.currentHour, ...data.hourHistory];
+                    msg.payload = {
+                        series: ['actual'],
+                        data: [
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.value
+                            }))
+                        ]
+                    };
                     node.send(msg);
                 } else if (node.outputMode === 'day_history') {
-                    msg.topic = 'day_history';
-                    msg.payload = [data.currentDay, ...data.dayHistory];
+                    // Format for Dashboard 2.0 chart: separate series arrays
+                    const historyData = [data.currentDay, ...data.dayHistory];
+                    msg.payload = {
+                        series: ['actual', 'goal'],
+                        data: [
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.value
+                            })),
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.goal || null
+                            }))
+                        ]
+                    };
                     node.send(msg);
                 } else if (node.outputMode === 'month_history') {
-                    msg.topic = 'month_history';
-                    msg.payload = [data.currentMonth, ...data.monthHistory];
+                    // Format for Dashboard 2.0 chart: separate series arrays
+                    const historyData = [data.currentMonth, ...data.monthHistory];
+                    msg.payload = {
+                        series: ['actual', 'goal'],
+                        data: [
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.value
+                            })),
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.goal || null
+                            }))
+                        ]
+                    };
                     node.send(msg);
                 } else if (node.outputMode === 'year_history') {
-                    msg.topic = 'year_history';
-                    msg.payload = [data.currentYear, ...data.yearHistory];
+                    // Format for Dashboard 2.0 chart: separate series arrays
+                    const historyData = [data.currentYear, ...data.yearHistory];
+                    msg.payload = {
+                        series: ['actual', 'goal'],
+                        data: [
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.value
+                            })),
+                            historyData.map(entry => ({
+                                x: entry.period,
+                                y: entry.goal || null
+                            }))
+                        ]
+                    };
                     node.send(msg);
                 }
                 
@@ -1029,7 +1077,7 @@ function calculateGoalProjection(data, goalConfig) {
     // Calculate goal per period
     const goalPerDay = remainingGoal / remainingDays;
     const goalPerMonth = remainingGoal / remainingMonths;
-    const goalPerYear = remainingGoal; // Total remaining for year view
+    const goalPerYear = yearlyGoal; // Always use the configured yearly goal, not the remaining amount
     
     return {
         goalPerDay: goalPerDay,
