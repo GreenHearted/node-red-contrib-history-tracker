@@ -178,12 +178,12 @@ function NodeREDModule(RED) {
                         });
                         msg.payload = chartPayload;
                     } else {
-                        // Dashboard 1.0 format: array with series, data, labels
-                        msg.payload = [{
-                            series: ['actual'],
+                        // Dashboard 1.0 format: direct object without wrapper array
+                        msg.payload = {
+                            series: ['Hours'],
                             data: [historyData.map(entry => entry.value)],
                             labels: historyData.map(entry => entry.period)
-                        }];
+                        };
                     }
                     node.send(msg);
                 } else if (node.outputMode === 'day_history') {
@@ -206,15 +206,15 @@ function NodeREDModule(RED) {
                         });
                         msg.payload = chartPayload;
                     } else {
-                        // Dashboard 1.0 format: array with series, data, labels
-                        msg.payload = [{
+                        // Dashboard 1.0 format: direct object without wrapper array
+                        msg.payload = {
                             series: ['actual', 'goal'],
                             data: [
                                 historyData.map(entry => entry.value),
                                 historyData.map(entry => entry.goal !== undefined ? entry.goal : null)
                             ],
                             labels: historyData.map(entry => entry.period)
-                        }];
+                        };
                     }
                     node.send(msg);
                 } else if (node.outputMode === 'month_history') {
@@ -237,15 +237,15 @@ function NodeREDModule(RED) {
                         });
                         msg.payload = chartPayload;
                     } else {
-                        // Dashboard 1.0 format: array with series, data, labels
-                        msg.payload = [{
+                        // Dashboard 1.0 format: direct object without wrapper array
+                        msg.payload = {
                             series: ['actual', 'goal'],
                             data: [
                                 historyData.map(entry => entry.value),
                                 historyData.map(entry => entry.goal !== undefined ? entry.goal : null)
                             ],
                             labels: historyData.map(entry => entry.period)
-                        }];
+                        };
                     }
                     node.send(msg);
                 } else if (node.outputMode === 'year_history') {
@@ -268,15 +268,15 @@ function NodeREDModule(RED) {
                         });
                         msg.payload = chartPayload;
                     } else {
-                        // Dashboard 1.0 format: array with series, data, labels
-                        msg.payload = [{
+                        // Dashboard 1.0 format: direct object without wrapper array
+                        msg.payload = {
                             series: ['actual', 'goal'],
                             data: [
                                 historyData.map(entry => entry.value),
                                 historyData.map(entry => entry.goal !== undefined ? entry.goal : null)
                             ],
                             labels: historyData.map(entry => entry.period)
-                        }];
+                        };
                     }
                     node.send(msg);
                 }
