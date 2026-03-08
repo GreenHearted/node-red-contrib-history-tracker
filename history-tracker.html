@@ -182,6 +182,15 @@
         <li>Historie wird auf konfigurierte Limits begrenzt (neueste zuerst)</li>
     </ul>
     
+    <h3>Dynamische Output-Modus Steuerung</h3>
+    <p>Der Output-Modus kann zur Laufzeit über eine Message geändert werden:</p>
+    <pre>
+msg.topic = "setOutputMode";
+msg.payload = "month_history";  // oder: none, last, current, all, hour_history, day_history, year_history
+return msg;
+    </pre>
+    <p>Dies ermöglicht es, den gleichen History-Tracker Node für verschiedene Dashboards oder Ansichten zu verwenden.</p>
+    
     <h3>Min/Max Tracking</h3>
     <p>Beim Periodenwechsel werden automatisch Minimum- und Maximum-Werte aus den untergeordneten Perioden berechnet:</p>
     <ul>

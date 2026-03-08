@@ -95,6 +95,19 @@ function NodeREDModule(RED) {
         
         node.on('input', function(msg) {
             try {
+                // Check if this is a control message to set output mode
+                if (msg.topic === 'setOutputMode' && msg.payload) {
+                    const validModes = ['none', 'last', 'current', 'all', 'hour_history', 'day_history', 'month_history', 'year_history'];
+                    if (validModes.includes(msg.payload)) {
+                        node.outputMode = msg.payload;
+                        node.status({fill: "blue", shape: "dot", text: `output mode: ${msg.payload}`});
+                        return;
+                    } else {
+                        node.warn(`Invalid output mode: ${msg.payload}`);
+                        return;
+                    }
+                }
+                
                 // Extract value from message
                 let value;
                 if (node.valueField === 'payload') {
