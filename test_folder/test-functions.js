@@ -1448,46 +1448,49 @@ function testChartFormatDashboard1() {
             yearHistory: []
         };
         
-        // Simulate the chart format generation (Dashboard 1.0 format - DIRECT OBJECT, NO ARRAY WRAPPER)
+        // Simulate the chart format generation (Dashboard 1.0 format - ARRAY with object inside)
         const historyData = [testData.currentDay, ...testData.dayHistory];
-        const chartPayload = {
+        const chartPayload = [{
             series: ['actual', 'goal'],
             data: [
                 historyData.map(entry => entry.value),
                 historyData.map(entry => entry.goal !== undefined ? entry.goal : null)
             ],
             labels: historyData.map(entry => entry.period)
-        };
+        }];
         
-        // Verify Dashboard 1.0 format (OBJECT, not array!)
-        const isObject = typeof chartPayload === 'object' && !Array.isArray(chartPayload);
-        const hasSeriesArray = Array.isArray(chartPayload.series) && chartPayload.series.length === 2;
-        const hasDataArrays = Array.isArray(chartPayload.data) && 
-                             chartPayload.data.length === 2 &&
-                             Array.isArray(chartPayload.data[0]) &&
-                             Array.isArray(chartPayload.data[1]);
-        const hasLabelsArray = Array.isArray(chartPayload.labels) && chartPayload.labels.length === 3;
+        // Verify Dashboard 1.0 format (ARRAY with one object!)
+        const isArray = Array.isArray(chartPayload);
+        const hasOneElement = chartPayload.length === 1;
+        const hasSeriesArray = Array.isArray(chartPayload[0].series) && chartPayload[0].series.length === 2;
+        const hasDataArrays = Array.isArray(chartPayload[0].data) && 
+                             chartPayload[0].data.length === 2 &&
+                             Array.isArray(chartPayload[0].data[0]) &&
+                             Array.isArray(chartPayload[0].data[1]);
+        const hasLabelsArray = Array.isArray(chartPayload[0].labels) && chartPayload[0].labels.length === 3;
         
-        const seriesCorrect = chartPayload.series[0] === 'actual' && chartPayload.series[1] === 'goal';
-        const dataCorrect = chartPayload.data[0][0] === 25.00 && // First actual value
-                           chartPayload.data[1][0] === 30.00;    // First goal value
-        const labelsCorrect = chartPayload.labels[0] === '2024-01-03';
+        const seriesCorrect = chartPayload[0].series[0] === 'actual' && chartPayload[0].series[1] === 'goal';
+        const dataCorrect = chartPayload[0].data[0][0] === 25.00 && // First actual value
+                           chartPayload[0].data[1][0] === 30.00;    // First goal value
+        const labelsCorrect = chartPayload[0].labels[0] === '2024-01-03';
         
-        const passed = isObject && hasSeriesArray && hasDataArrays && 
+        const passed = isArray && hasOneElement && hasSeriesArray && hasDataArrays && 
                       hasLabelsArray && seriesCorrect && dataCorrect && labelsCorrect;
         
         let details = '';
         if (!passed) {
-            details = `Object (not array): ${isObject}, `;
+            details = `Array: ${isArray}, Single element: ${hasOneElement}, `;
             details += `Series: ${hasSeriesArray}, Data: ${hasDataArrays}, Labels: ${hasLabelsArray}, `;
             details += `Values correct: ${seriesCorrect && dataCorrect && labelsCorrect}`;
-            details += `\nPayload: ${JSON.stringify(chartPayload, null, 2)}`;
+            if (chartPayload.length > 0) {
+                details += `\nPayload: ${JSON.stringify(chartPayload[0], null, 2)}`;
+            }
         } else {
-            details = 'Direct object {series, data, labels} for Dashboard 1.0 (no array wrapper)';
+            details = 'Array with single object [{series, data, labels}] for Dashboard 1.0';
         }
         
         printTestResult(
-            'Chart format Dashboard 1.0 should produce {series, data, labels} object',
+            'Chart format Dashboard 1.0 should produce [{series, data, labels}] structure',
             passed,
             details
         );
