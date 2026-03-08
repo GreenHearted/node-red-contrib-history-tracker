@@ -8,6 +8,7 @@
             valueField: {value: "payload"},
             outputMode: {value: "none"},
             unit: {value: "Liter"},
+            chartFormat: {value: "dashboard2"},
             maxHourHistory: {value: 24, validate: RED.validators.number()},
             maxDayHistory: {value: 31, validate: RED.validators.number()},
             maxMonthHistory: {value: 24, validate: RED.validators.number()},
@@ -61,6 +62,14 @@
             <option value="day_history">Tages Historie</option>
             <option value="month_history">Monats Historie</option>
             <option value="year_history">Jahres Historie</option>
+        </select>
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-chartFormat"><i class="fa fa-bar-chart"></i> Chart Format</label>
+        <select id="node-input-chartFormat">
+            <option value="dashboard2">Dashboard 2.0</option>
+            <option value="dashboard1">Dashboard 1.0 (Legacy)</option>
         </select>
     </div>
     

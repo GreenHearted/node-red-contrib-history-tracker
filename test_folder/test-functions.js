@@ -1335,6 +1335,174 @@ function testCalculateGoalProjectionDay() {
 }
 
 // ============================================================================
+// TEST 20: Chart Format - Dashboard 2.0 (flat array format)
+// ============================================================================
+function testChartFormatDashboard2() {
+    console.log('=== TEST 20: Chart Format - Dashboard 2.0 ===');
+    
+    try {
+        // Create test data with day history
+        const testData = {
+            lastValue: { value: 100.00, timestamp: '2024-01-03T12:00:00' },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: { 
+                period: '2024-01-03', 
+                value: 25.00, 
+                timestamp: '2024-01-03T12:00:00',
+                goal: 30.00
+            },
+            dayHistory: [
+                { period: '2024-01-02', value: 22.00, timestamp: '2024-01-02T23:59:59', goal: 30.00 },
+                { period: '2024-01-01', value: 28.00, timestamp: '2024-01-01T23:59:59', goal: 30.00 }
+            ],
+            currentMonth: {},
+            monthHistory: [],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Simulate the chart format generation (Dashboard 2.0 format)
+        const historyData = [testData.currentDay, ...testData.dayHistory];
+        const chartPayload = [];
+        
+        historyData.forEach(entry => {
+            chartPayload.push({
+                label: 'actual',
+                time: entry.period,
+                val: entry.value
+            });
+            chartPayload.push({
+                label: 'goal',
+                time: entry.period,
+                val: entry.goal !== undefined ? entry.goal : null
+            });
+        });
+        
+        // Verify Dashboard 2.0 format
+        const isArray = Array.isArray(chartPayload);
+        const correctLength = chartPayload.length === 6; // 3 periods * 2 entries (actual + goal)
+        const hasCorrectStructure = chartPayload.every(item => 
+            item.hasOwnProperty('label') && 
+            item.hasOwnProperty('time') && 
+            item.hasOwnProperty('val')
+        );
+        const firstActual = chartPayload[0].label === 'actual' && 
+                           chartPayload[0].time === '2024-01-03' && 
+                           chartPayload[0].val === 25.00;
+        const firstGoal = chartPayload[1].label === 'goal' && 
+                         chartPayload[1].time === '2024-01-03' && 
+                         chartPayload[1].val === 30.00;
+        
+        const passed = isArray && correctLength && hasCorrectStructure && firstActual && firstGoal;
+        
+        let details = '';
+        if (!passed) {
+            details = `Array: ${isArray}, Length: ${chartPayload.length} (expected 6), `;
+            details += `Structure: ${hasCorrectStructure}, First entries correct: ${firstActual && firstGoal}`;
+            if (chartPayload.length > 0) {
+                details += `\nFirst entry: ${JSON.stringify(chartPayload[0])}`;
+            }
+        } else {
+            details = 'Flat array format with {label, time, val} objects for Dashboard 2.0';
+        }
+        
+        printTestResult(
+            'Chart format Dashboard 2.0 should produce flat array with label/time/val',
+            passed,
+            details
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('Chart format Dashboard 2.0 test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
+// TEST 21: Chart Format - Dashboard 1.0 (legacy format)
+// ============================================================================
+function testChartFormatDashboard1() {
+    console.log('=== TEST 21: Chart Format - Dashboard 1.0 (legacy) ===');
+    
+    try {
+        // Create test data with day history
+        const testData = {
+            lastValue: { value: 100.00, timestamp: '2024-01-03T12:00:00' },
+            currentHour: {},
+            hourHistory: [],
+            currentDay: { 
+                period: '2024-01-03', 
+                value: 25.00, 
+                timestamp: '2024-01-03T12:00:00',
+                goal: 30.00
+            },
+            dayHistory: [
+                { period: '2024-01-02', value: 22.00, timestamp: '2024-01-02T23:59:59', goal: 30.00 },
+                { period: '2024-01-01', value: 28.00, timestamp: '2024-01-01T23:59:59', goal: 30.00 }
+            ],
+            currentMonth: {},
+            monthHistory: [],
+            currentYear: {},
+            yearHistory: []
+        };
+        
+        // Simulate the chart format generation (Dashboard 1.0 format)
+        const historyData = [testData.currentDay, ...testData.dayHistory];
+        const chartPayload = [{
+            series: ['actual', 'goal'],
+            data: [
+                historyData.map(entry => entry.value),
+                historyData.map(entry => entry.goal !== undefined ? entry.goal : null)
+            ],
+            labels: historyData.map(entry => entry.period)
+        }];
+        
+        // Verify Dashboard 1.0 format
+        const isArray = Array.isArray(chartPayload);
+        const hasOneElement = chartPayload.length === 1;
+        const hasSeriesArray = Array.isArray(chartPayload[0].series) && chartPayload[0].series.length === 2;
+        const hasDataArrays = Array.isArray(chartPayload[0].data) && 
+                             chartPayload[0].data.length === 2 &&
+                             Array.isArray(chartPayload[0].data[0]) &&
+                             Array.isArray(chartPayload[0].data[1]);
+        const hasLabelsArray = Array.isArray(chartPayload[0].labels) && chartPayload[0].labels.length === 3;
+        
+        const seriesCorrect = chartPayload[0].series[0] === 'actual' && chartPayload[0].series[1] === 'goal';
+        const dataCorrect = chartPayload[0].data[0][0] === 25.00 && // First actual value
+                           chartPayload[0].data[1][0] === 30.00;    // First goal value
+        const labelsCorrect = chartPayload[0].labels[0] === '2024-01-03';
+        
+        const passed = isArray && hasOneElement && hasSeriesArray && hasDataArrays && 
+                      hasLabelsArray && seriesCorrect && dataCorrect && labelsCorrect;
+        
+        let details = '';
+        if (!passed) {
+            details = `Array: ${isArray}, Single element: ${hasOneElement}, `;
+            details += `Series: ${hasSeriesArray}, Data: ${hasDataArrays}, Labels: ${hasLabelsArray}, `;
+            details += `Values correct: ${seriesCorrect && dataCorrect && labelsCorrect}`;
+            if (chartPayload.length > 0) {
+                details += `\nPayload: ${JSON.stringify(chartPayload[0], null, 2)}`;
+            }
+        } else {
+            details = 'Array with single object containing {series, data, labels} for Dashboard 1.0';
+        }
+        
+        printTestResult(
+            'Chart format Dashboard 1.0 should produce [{series, data, labels}] structure',
+            passed,
+            details
+        );
+        
+        return passed;
+    } catch (error) {
+        printTestResult('Chart format Dashboard 1.0 test', false, `Error: ${error.message}`);
+        return false;
+    }
+}
+
+// ============================================================================
 // Run all tests
 // ============================================================================
 function runAllTests() {
@@ -1365,6 +1533,8 @@ function runAllTests() {
     results.push(testCalculateGoalProjectionExceeded());
     results.push(testCalculateGoalProjectionDisabled());
     results.push(testCalculateGoalProjectionDay());
+    results.push(testChartFormatDashboard2());
+    results.push(testChartFormatDashboard1());
     
     // Cleanup
     cleanupTestFiles();
