@@ -36,32 +36,32 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-filepath"><i class="fa fa-file"></i> Dateipfad</label>
+        <label for="node-input-filepath"><i class="fa fa-file"></i> File Path</label>
         <input type="text" id="node-input-filepath" placeholder="history.txt">
         <div class="form-tips" style="margin-top:5px;">
-            <b>Nur Dateiname:</b> Wird im userDir gespeichert (z.B. "history.txt")<br/>
-            <b>Vollständiger Pfad:</b> Absoluter Pfad zur Datei (z.B. "C:\Daten\history.txt")
+            <b>Filename only:</b> Stored in userDir (e.g. "history.txt")<br/>
+            <b>Full path:</b> Absolute path to file (e.g. "C:\Data\history.txt")
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-valueField"><i class="fa fa-list"></i> Wert-Feld</label>
+        <label for="node-input-valueField"><i class="fa fa-list"></i> Value Field</label>
         <input type="text" id="node-input-valueField" placeholder="payload">
     </div>
     <div class="form-row">
-        <label for="node-input-unit"><i class="fa fa-balance-scale"></i> Einheit</label>
+        <label for="node-input-unit"><i class="fa fa-balance-scale"></i> Unit</label>
         <input type="text" id="node-input-unit" placeholder="Liter">
     </div>
     <div class="form-row">
-        <label for="node-input-outputMode"><i class="fa fa-sign-out"></i> Output Modus</label>
+        <label for="node-input-outputMode"><i class="fa fa-sign-out"></i> Output Mode</label>
         <select id="node-input-outputMode">
-            <option value="none">Kein Output</option>
-            <option value="last">Nur letzter Wert</option>
-            <option value="current">Aktuelle Perioden</option>
-            <option value="all">Alle Daten</option>
-            <option value="hour_history">Stunden Historie</option>
-            <option value="day_history">Tages Historie</option>
-            <option value="month_history">Monats Historie</option>
-            <option value="year_history">Jahres Historie</option>
+            <option value="none">No Output</option>
+            <option value="last">Last Value Only</option>
+            <option value="current">Current Periods</option>
+            <option value="all">All Data</option>
+            <option value="hour_history">Hour History</option>
+            <option value="day_history">Day History</option>
+            <option value="month_history">Month History</option>
+            <option value="year_history">Year History</option>
         </select>
     </div>
     
@@ -75,145 +75,183 @@
     
     <div class="form-row">
         <label style="width: 100%; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 10px;">
-            <i class="fa fa-history"></i> Historie-Limits
+            <i class="fa fa-history"></i> History Limits
         </label>
     </div>
     
     <div class="form-row">
-        <label for="node-input-maxHourHistory"><i class="fa fa-clock-o"></i> Max. Stunden</label>
+        <label for="node-input-maxHourHistory"><i class="fa fa-clock-o"></i> Max. Hours</label>
         <input type="number" id="node-input-maxHourHistory" placeholder="24" style="width: 100px;">
-        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+        <span style="margin-left: 10px; color: #666;">entries (0 = unlimited)</span>
     </div>
     
     <div class="form-row">
-        <label for="node-input-maxDayHistory"><i class="fa fa-calendar"></i> Max. Tage</label>
+        <label for="node-input-maxDayHistory"><i class="fa fa-calendar"></i> Max. Days</label>
         <input type="number" id="node-input-maxDayHistory" placeholder="31" style="width: 100px;">
-        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+        <span style="margin-left: 10px; color: #666;">entries (0 = unlimited)</span>
     </div>
     
     <div class="form-row">
-        <label for="node-input-maxMonthHistory"><i class="fa fa-calendar"></i> Max. Monate</label>
+        <label for="node-input-maxMonthHistory"><i class="fa fa-calendar"></i> Max. Months</label>
         <input type="number" id="node-input-maxMonthHistory" placeholder="24" style="width: 100px;" min="24">
-        <span style="margin-left: 10px; color: #666;">Einträge (min. 24 für Zielberechnung)</span>
+        <span style="margin-left: 10px; color: #666;">entries (min. 24 for goal calculation)</span>
     </div>
     
     <div class="form-row">
-        <label for="node-input-maxYearHistory"><i class="fa fa-calendar"></i> Max. Jahre</label>
+        <label for="node-input-maxYearHistory"><i class="fa fa-calendar"></i> Max. Years</label>
         <input type="number" id="node-input-maxYearHistory" placeholder="10" style="width: 100px;">
-        <span style="margin-left: 10px; color: #666;">Einträge (0 = unbegrenzt)</span>
+        <span style="margin-left: 10px; color: #666;">entries (0 = unlimited)</span>
     </div>
     
     <div class="form-row">
         <label style="width: 100%; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 10px;">
-            <i class="fa fa-bullseye"></i> Jahresziel / Limit
+            <i class="fa fa-bullseye"></i> Yearly Goal / Limit
         </label>
     </div>
     
     <div class="form-row">
-        <label for="node-input-yearlyGoal"><i class="fa fa-trophy"></i> Jahresziel</label>
+        <label for="node-input-yearlyGoal"><i class="fa fa-trophy"></i> Yearly Goal</label>
         <input type="number" id="node-input-yearlyGoal" placeholder="0" style="width: 150px;" step="0.01">
-        <span style="margin-left: 10px; color: #666;">(0 = kein Ziel)</span>
+        <span style="margin-left: 10px; color: #666;">(0 = disabled)</span>
     </div>
     
     <div class="form-row">
-        <label for="node-input-goalStartMonth"><i class="fa fa-calendar-check-o"></i> Start Monat</label>
+        <label for="node-input-goalStartMonth"><i class="fa fa-calendar-check-o"></i> Start Month</label>
         <select id="node-input-goalStartMonth" style="width: 150px;">
-            <option value="1">Januar</option>
-            <option value="2">Februar</option>
-            <option value="3">März</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
             <option value="4">April</option>
-            <option value="5">Mai</option>
-            <option value="6">Juni</option>
-            <option value="7">Juli</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
             <option value="8">August</option>
             <option value="9">September</option>
-            <option value="10">Oktober</option>
+            <option value="10">October</option>
             <option value="11">November</option>
-            <option value="12">Dezember</option>
+            <option value="12">December</option>
         </select>
     </div>
     
     <div class="form-row">
-        <label for="node-input-goalEndMonth"><i class="fa fa-calendar-times-o"></i> Ende Monat</label>
+        <label for="node-input-goalEndMonth"><i class="fa fa-calendar-times-o"></i> End Month</label>
         <select id="node-input-goalEndMonth" style="width: 150px;">
-            <option value="1">Januar</option>
-            <option value="2">Februar</option>
-            <option value="3">März</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
             <option value="4">April</option>
-            <option value="5">Mai</option>
-            <option value="6">Juni</option>
-            <option value="7">Juli</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
             <option value="8">August</option>
             <option value="9">September</option>
-            <option value="10">Oktober</option>
+            <option value="10">October</option>
             <option value="11">November</option>
-            <option value="12">Dezember</option>
+            <option value="12">December</option>
         </select>
     </div>
 </script>
 
 <script type="text/html" data-help-name="history-tracker">
-    <p>Speichert Werte mit Differenzberechnung und aggregiert sie nach Stunde, Tag, Monat und Jahr.</p>
+    <p>Tracks counter values with automatic difference calculation and aggregates them by hour, day, month, and year.</p>
     
-    <h3>Konfiguration</h3>
+    <h3>Configuration</h3>
     <dl class="message-properties">
-        <dt>Dateipfad <span class="property-type">string</span></dt>
-        <dd>Pfad zur Datei. Nur Dateiname = userDir, vollständiger Pfad = absoluter Pfad</dd>
+        <dt>File Path <span class="property-type">string</span></dt>
+        <dd>Path to history file. Filename only = stored in userDir, full path = absolute path</dd>
         
-        <dt>Wert-Feld <span class="property-type">string</span></dt>
-        <dd>Name des Feldes in msg, aus dem der Wert gelesen wird (Standard: payload)</dd>
+        <dt>Value Field <span class="property-type">string</span></dt>
+        <dd>Name of the field in msg to read the value from (default: payload)</dd>
         
-        <dt>Einheit <span class="property-type">string</span></dt>
-        <dd>Einheit für die Werte (z.B. Liter, kWh, m³)</dd>
+        <dt>Unit <span class="property-type">string</span></dt>
+        <dd>Unit of measurement (e.g. Liter, kWh, m³)</dd>
         
-        <dt>Output Modus <span class="property-type">string</span></dt>
-        <dd>Bestimmt, welche Daten als Output gesendet werden</dd>
+        <dt>Output Mode <span class="property-type">string</span></dt>
+        <dd>Determines what data is sent as output</dd>
         
-        <dt>Historie-Limits <span class="property-type">number</span></dt>
-        <dd>Maximale Anzahl der Einträge pro Historie-Typ (0 = unbegrenzt). Älteste Einträge werden automatisch gelöscht.</dd>
+        <dt>Chart Format <span class="property-type">string</span></dt>
+        <dd>Dashboard 2.0 format (flat array) or Dashboard 1.0 format (series/data/labels)</dd>
+        
+        <dt>History Limits <span class="property-type">number</span></dt>
+        <dd>Maximum number of entries per history type (0 = unlimited). Oldest entries are automatically removed.</dd>
     </dl>
 
-    <h3>Funktionsweise</h3>
-    <p>Der Node berechnet die Differenz zwischen aufeinanderfolgenden Werten und summiert diese pro Zeitperiode.</p>
+    <h3>How It Works</h3>
+    <p>The node calculates the difference between consecutive values and sums them per time period.</p>
     <ul>
-        <li>Negative Differenzen werden ignoriert (Counter-Reset)</li>
-        <li>Beim Periodenwechsel startet die neue Periode bei 0</li>
-        <li>Die alte Periode wird in die Historie verschoben</li>
-        <li>Historie wird auf konfigurierte Limits begrenzt (neueste zuerst)</li>
+        <li>Negative differences are ignored (counter reset)</li>
+        <li>When a period changes, the new period starts at 0</li>
+        <li>The old period is moved to history</li>
+        <li>History is limited to configured maximums (newest first)</li>
+        <li>Missing periods are automatically filled with zero values</li>
     </ul>
     
-    <h3>Dynamische Output-Modus Steuerung</h3>
-    <p>Der Output-Modus kann zur Laufzeit über eine Message geändert werden:</p>
+    <h3>Dynamic Output Mode Control</h3>
+    <p>The output mode can be changed at runtime via a message:</p>
     <pre>
 msg.topic = "setOutputMode";
-msg.payload = "month_history";  // oder: none, last, current, all, hour_history, day_history, year_history
+msg.payload = "month_history";  // or: none, last, current, all, hour_history, day_history, year_history
 return msg;
     </pre>
-    <p>Dies ermöglicht es, den gleichen History-Tracker Node für verschiedene Dashboards oder Ansichten zu verwenden.</p>
+    <p>This allows using the same History Tracker node for different dashboards or views without sending data when not needed.</p>
+    
+    <h3>Chart Output Formats</h3>
+    <h4>Dashboard 2.0 Format</h4>
+    <p>Flat array of objects for modern Dashboard 2.0 charts:</p>
+    <pre>
+[
+  { label: 'actual', time: '2024-01', val: 150 },
+  { label: 'goal', time: '2024-01', val: 120 },
+  ...
+]
+    </pre>
+    <p><b>Chart Configuration:</b> Key for series: <code>label</code>, Key for x-axis: <code>time</code>, Key for y-axis: <code>val</code></p>
+    
+    <h4>Dashboard 1.0 Format (Legacy)</h4>
+    <p>Traditional format for old Dashboard charts:</p>
+    <pre>
+[{
+  series: ['actual', 'goal'],
+  data: [[150, 130, ...], [120, 120, ...]],
+  labels: ['2024-01', '2024-02', ...]
+}]
+    </pre>
     
     <h3>Min/Max Tracking</h3>
-    <p>Beim Periodenwechsel werden automatisch Minimum- und Maximum-Werte aus den untergeordneten Perioden berechnet:</p>
+    <p>When a period changes, minimum and maximum values are automatically calculated from sub-periods:</p>
     <ul>
-        <li><b>Tag → Historie:</b> Min/Max aus Stundenwerten des Tages</li>
-        <li><b>Monat → Historie:</b> Min/Max aus Tageswerten des Monats</li>
-        <li><b>Jahr → Historie:</b> Min/Max aus Monatswerten des Jahres</li>
+        <li><b>Day → History:</b> Min/Max from hourly values of the day</li>
+        <li><b>Month → History:</b> Min/Max from daily values of the month</li>
+        <li><b>Year → History:</b> Min/Max from monthly values of the year</li>
     </ul>
-    <p><i>Hinweis: Min/Max werden nur für abgeschlossene Perioden in der Historie gespeichert, nicht für aktuelle Perioden.</i></p>
+    <p><i>Note: Min/Max are only stored for completed periods in history, not for current periods.</i></p>
     
-    <h3>Abwärtskompatibilität</h3>
-    <p>Der Node ist vollständig abwärtskompatibel mit älteren Datendateien:</p>
+    <h3>Backwards Compatibility</h3>
+    <p>The node is fully backwards compatible with older data files:</p>
     <ul>
-        <li>Alte Dateien ohne Min/Max-Werte werden korrekt gelesen</li>
-        <li>Neue Min/Max-Werte werden ab dem nächsten Periodenwechsel berechnet</li>
-        <li>Alte Einträge behalten ihre ursprüngliche Form</li>
+        <li>Old files without Min/Max values are read correctly</li>
+        <li>New Min/Max values are calculated from the next period change</li>
+        <li>Old entries retain their original format</li>
+        <li>Legacy German timestamp format (DD.MM.YYYY, HH:MM:SS) is supported</li>
     </ul>
     
-    <h3>Jahresziel / Limit</h3>
-    <p>Definieren Sie ein Jahresziel für den überwachten Verbrauch:</p>
+    <h3>Yearly Goal / Limit</h3>
+    <p>Define a yearly goal for monitored consumption:</p>
     <ul>
-        <li><b>Jahresziel:</b> Der Zielwert (z.B. 1000 Liter). Bei 0 ist die Funktion deaktiviert.</li>
-        <li><b>Start/Ende Monat:</b> Zeitraum für das Ziel (z.B. Januar bis Dezember)</li>
-        <li>Das Ziel wird über den definierten Zeitraum berechnet</li>
-        <li>Funktioniert auch über Jahresgrenzen hinweg (z.B. Oktober bis März)</li>
+        <li><b>Yearly Goal:</b> Target value (e.g. 1000 Liter). 0 = disabled.</li>
+        <li><b>Start/End Month:</b> Period for the goal (e.g. January to December)</li>
+        <li>Goal is calculated over the defined period</li>
+        <li>Works across year boundaries (e.g. October to March)</li>
+        <li>Remaining goal is distributed evenly across remaining days/months</li>
+        <li>Consumption is calculated from month-level data only</li>
+    </ul>
+    
+    <h3>Gap Filling</h3>
+    <p>If the node detects missing periods (e.g. Node-RED was offline), it automatically fills gaps with zero values:</p>
+    <ul>
+        <li>Missing hours, days, months, or years are detected</li>
+        <li>Gaps are filled with entries having value 0</li>
+        <li>Timestamps are calculated for missing periods</li>
+        <li>History remains continuous without data loss</li>
     </ul>
 </script>
