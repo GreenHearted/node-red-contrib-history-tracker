@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.0.3";
+const VERSION = "2.0.4";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
@@ -123,10 +123,10 @@ function NodeREDModule(RED) {
                         });
                     });
                     msg.payload = chartPayload;
-                } else {
+                } else {    
                     msg.payload = [{
-                        series: ['Hours'],
-                        data: historyData.map(entry => entry.value),
+                        series: ['actual'],
+                        data: [historyData.map(entry => entry.value)],
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
