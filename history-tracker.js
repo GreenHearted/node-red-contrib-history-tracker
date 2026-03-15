@@ -43,6 +43,7 @@ function NodeREDModule(RED) {
         node.outputMode = config.outputMode || 'none'; // none, last, current, all
         node.unit = config.unit || 'Liter';
         node.chartFormat = config.chartFormat || 'dashboard2'; // dashboard2, dashboard1
+        node.maxFlowInterval = parseFloat(config.maxFlowInterval) || 60; // max minutes between measurements for flow calculation
         
         // History limits (0 = unlimited)
         node.maxHourHistory = parseInt(config.maxHourHistory) || 0;
@@ -97,6 +98,7 @@ function NodeREDModule(RED) {
         const generateOutput = function(data, msg) {
             if (node.outputMode === 'last') {
                 msg.payload = data.lastValue;
+                msg.flowRate = data.flowRate !== undefined ? data.flowRate : null;
                 node.send(msg);
             } else if (node.outputMode === 'current') {
                 msg.payload = {
@@ -104,7 +106,8 @@ function NodeREDModule(RED) {
                     currentHour: data.currentHour,
                     currentDay: data.currentDay,
                     currentMonth: data.currentMonth,
-                    currentYear: data.currentYear
+                    currentYear: data.currentYear,
+                    flowRate: data.flowRate !== undefined ? data.flowRate : null
                 };
                 node.send(msg);
             } else if (node.outputMode === 'all') {
@@ -263,7 +266,7 @@ function NodeREDModule(RED) {
                     yearlyGoal: node.yearlyGoal,
                     goalStartMonth: node.goalStartMonth,
                     goalEndMonth: node.goalEndMonth
-                });
+                }, node.maxFlowInterval);
                 
                 // Trim history arrays to configured limits
                 trimHistory(data, {
@@ -336,7 +339,7 @@ function fillPeriodGap(data, historyKey, currentPeriod, periodDiff, generateMiss
  * @param {Object} goalConfig - Optional goal configuration for calculating goal per period
  * @returns {Object} The updated data object with all history information
  */
-function saveValue(filepath, value, unit, goalConfig) {
+function saveValue(filepath, value, unit, goalConfig, maxFlowInterval) {
     const now = new Date();
     
     // Create ISO-like timestamp: YYYY-MM-DDTHH:MM:SS
@@ -365,12 +368,28 @@ function saveValue(filepath, value, unit, goalConfig) {
         }
     }
     
+    // Capture previous timestamp before overwriting lastValue
+    const prevTimestampMs = data.lastValue.timestampMs || null;
+    
     // Update last value
     data.lastValue = {
         value: value,
         timestamp: timestamp,
         timestampMs: now.getTime()
     };
+    
+    // Calculate flow rate (value difference per minute)
+    // Flow is 0 if time gap exceeds maxFlowInterval minutes (counter was off / no consumption)
+    const effectiveMaxFlowInterval = (maxFlowInterval && maxFlowInterval > 0) ? maxFlowInterval : 60;
+    let flowRate = 0;
+    if (prevTimestampMs !== null && difference > 0) {
+        const timeDiffMs = now.getTime() - prevTimestampMs;
+        if (timeDiffMs > 0 && timeDiffMs <= (effectiveMaxFlowInterval*60000)) {
+            flowRate = (difference * 60000) / timeDiffMs;  // flowrate in x/min
+        }
+        // If timeDiff > effectiveMaxFlowInterval: flowRate stays 0 (gap too large)
+    }
+    data.flowRate = flowRate;
     
     const hourKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}_${String(currentHour).padStart(2, '0')}`;
     
