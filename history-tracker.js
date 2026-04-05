@@ -96,8 +96,8 @@ function NodeREDModule(RED) {
         
         // Helper function to build the gauge message for output 1 (current month value + goal as max)
         // msg.payload      - current month value (Dashboard 1 & 2)
-        // msg.max          - current month goal as max (Dashboard 2)
         // msg.ui_control   - { max: goal } for Dashboard 1 gauge
+        // msg.ui_update    - { max: goal } for Dashboard 2 gauge
         const buildGaugeMsg = function(data, originalMsg) {
             const gaugeMsg = RED.util.cloneMessage(originalMsg);
             gaugeMsg.payload = data.currentMonth && data.currentMonth.value !== undefined
@@ -106,8 +106,11 @@ function NodeREDModule(RED) {
             const goalMax = data.currentMonth && data.currentMonth.goal !== undefined
                 ? data.currentMonth.goal
                 : null;
-            gaugeMsg.max = goalMax;
-            gaugeMsg.ui_control = { max: goalMax };
+            if (node.chartFormat === 'dashboard2') {
+                gaugeMsg.ui_update = { max: goalMax };
+            } else {
+                gaugeMsg.ui_control = { max: goalMax };
+            }
             gaugeMsg.period = data.currentMonth && data.currentMonth.period
                 ? data.currentMonth.period
                 : null;
