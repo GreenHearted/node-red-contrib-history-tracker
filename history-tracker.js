@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.0.4";
+const VERSION = "2.1.0";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
@@ -94,12 +94,31 @@ function NodeREDModule(RED) {
             }
         }
         
+        // Helper function to build the gauge message for output 1 (current month value + goal as max)
+        const buildGaugeMsg = function(data, originalMsg) {
+            const gaugeMsg = RED.util.cloneMessage(originalMsg);
+            gaugeMsg.payload = data.currentMonth && data.currentMonth.value !== undefined
+                ? data.currentMonth.value
+                : null;
+            gaugeMsg.max = data.currentMonth && data.currentMonth.goal !== undefined
+                ? data.currentMonth.goal
+                : null;
+            gaugeMsg.period = data.currentMonth && data.currentMonth.period
+                ? data.currentMonth.period
+                : null;
+            return gaugeMsg;
+        };
+
         // Helper function to generate output based on current mode
+        // output 1 (index 0): gauge message (current month value + goal as max)
+        // output 2 (index 1): existing data output based on outputMode
         const generateOutput = function(data, msg) {
+            const gaugeMsg = buildGaugeMsg(data, msg);
+
             if (node.outputMode === 'last') {
                 msg.payload = data.lastValue;
                 msg.flowRate = data.flowRate !== undefined ? data.flowRate : null;
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
             } else if (node.outputMode === 'current') {
                 msg.payload = {
                     lastValue: data.lastValue,
@@ -109,10 +128,10 @@ function NodeREDModule(RED) {
                     currentYear: data.currentYear,
                     flowRate: data.flowRate !== undefined ? data.flowRate : null
                 };
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
             } else if (node.outputMode === 'all') {
                 msg.payload = data;
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
             } else if (node.outputMode === 'hour_history') {
                 const historyData = [data.currentHour, ...data.hourHistory];
                 
@@ -133,7 +152,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
             } else if (node.outputMode === 'day_history') {
                 const historyData = [data.currentDay, ...data.dayHistory];
                 
@@ -162,7 +181,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
             } else if (node.outputMode === 'month_history') {
                 const historyData = [data.currentMonth, ...data.monthHistory];
                 
@@ -191,7 +210,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
             } else if (node.outputMode === 'year_history') {
                 const historyData = [data.currentYear, ...data.yearHistory];
                 
@@ -220,9 +239,11 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send(msg);
+                node.send([gaugeMsg, msg]);
+            } else {
+                // 'none' mode: still send gauge on output 1, nothing on output 2
+                node.send([gaugeMsg, null]);
             }
-            // Note: 'none' mode doesn't send anything
         };
         
         node.on('input', function(msg) {
