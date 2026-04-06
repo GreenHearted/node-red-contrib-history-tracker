@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.2.0";
+const VERSION = "2.2.1";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
@@ -105,7 +105,7 @@ function NodeREDModule(RED) {
                 value: data.currentDay && data.currentDay.value !== undefined
                     ? data.currentDay.value
                     : null,
-                flowRate: data.flowRate !== undefined ? data.flowRate : null,
+                flowRate: data.flowRate !== undefined ? Math.round(data.flowRate * 10) / 10 : null,
                 period: data.currentDay && data.currentDay.period
                     ? data.currentDay.period
                     : null,
@@ -133,38 +133,22 @@ function NodeREDModule(RED) {
             } else {
                 gaugeMsg.ui_control = { max: goalMax };
             }
-            gaugeMsg.period = data.currentMonth && data.currentMonth.period
-                ? data.currentMonth.period
-                : null;
             return gaugeMsg;
         };
 
         // Helper function to generate output based on current mode
-        // output 1 (index 0): day+flow message (current day value + flow rate)
-        // output 2 (index 1): gauge message (current month value + goal as max)
-        // output 3 (index 2): existing data output based on outputMode
+        // output 1 (index 0): full data object
+        // output 2 (index 1): day+flow message (current day value + flow rate)
+        // output 3 (index 2): gauge message (current month value + goal as max)
+        // output 4 (index 3): existing data output based on outputMode
         const generateOutput = function(data, msg) {
+            const fullDataMsg = RED.util.cloneMessage(msg);
+            fullDataMsg.payload = data;
+
             const dayFlowMsg = buildDayFlowMsg(data, msg);
             const gaugeMsg = buildGaugeMsg(data, msg);
 
-            if (node.outputMode === 'last') {
-                msg.payload = data.lastValue;
-                msg.flowRate = data.flowRate !== undefined ? data.flowRate : null;
-                node.send([dayFlowMsg, gaugeMsg, msg]);
-            } else if (node.outputMode === 'current') {
-                msg.payload = {
-                    lastValue: data.lastValue,
-                    currentHour: data.currentHour,
-                    currentDay: data.currentDay,
-                    currentMonth: data.currentMonth,
-                    currentYear: data.currentYear,
-                    flowRate: data.flowRate !== undefined ? data.flowRate : null
-                };
-                node.send([dayFlowMsg, gaugeMsg, msg]);
-            } else if (node.outputMode === 'all') {
-                msg.payload = data;
-                node.send([dayFlowMsg, gaugeMsg, msg]);
-            } else if (node.outputMode === 'hour_history') {
+            if (node.outputMode === 'hour_history') {
                 const historyData = [data.currentHour, ...data.hourHistory];
                 
                 if (node.chartFormat === 'dashboard2') {
@@ -184,7 +168,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([dayFlowMsg, gaugeMsg, msg]);
+                node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'day_history') {
                 const historyData = [data.currentDay, ...data.dayHistory];
                 
@@ -213,7 +197,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([dayFlowMsg, gaugeMsg, msg]);
+                node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'month_history') {
                 const historyData = [data.currentMonth, ...data.monthHistory];
                 
@@ -242,7 +226,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([dayFlowMsg, gaugeMsg, msg]);
+                node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'year_history') {
                 const historyData = [data.currentYear, ...data.yearHistory];
                 
@@ -271,10 +255,10 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([dayFlowMsg, gaugeMsg, msg]);
+                node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else {
-                // 'none' mode: send day+flow and gauge, nothing on output 3
-                node.send([dayFlowMsg, gaugeMsg, null]);
+                // 'none' mode: send full data, day+flow and gauge, nothing on output 4
+                node.send([fullDataMsg, dayFlowMsg, gaugeMsg, null]);
             }
         };
         

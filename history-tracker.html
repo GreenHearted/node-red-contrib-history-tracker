@@ -19,8 +19,8 @@
             maxFlowInterval: { value: 60 }
         },
         inputs: 1,
-        outputs: 3,
-        outputLabels: ["day value + flow rate", "gauge (current month value + goal as max)", "data output"],
+        outputs: 4,
+        outputLabels: ["full data object", "day value + flow rate", "gauge (current month value + goal as max)", "configurable data output"],
         icon: "file.png",
         label: function() {
             return this.name || "history tracker";
@@ -96,7 +96,7 @@
     <div class="form-row">
         <label for="node-input-maxMonthHistory"><i class="fa fa-calendar"></i> Max. Months</label>
         <input type="number" id="node-input-maxMonthHistory" placeholder="24" style="width: 100px;" min="24">
-        <span style="margin-left: 10px; color: #666;">entries (min. 24 for goal calculation)</span>
+        <span style="margin-left: 10px, color: #666;">entries (min. 24 for goal calculation)</span>
     </div>
     
     <div class="form-row">
