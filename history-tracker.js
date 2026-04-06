@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = "2.1.0";
+const VERSION = "2.2.0";
 
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
@@ -94,7 +94,29 @@ function NodeREDModule(RED) {
             }
         }
         
-        // Helper function to build the gauge message for output 1 (current month value + goal as max)
+        // Helper function to build the day+flow message for output 1
+        // msg.payload.value    - current day value
+        // msg.payload.flowRate - current flow rate
+        // msg.payload.period   - current day period
+        // msg.payload.goal     - current day goal (if set)
+        const buildDayFlowMsg = function(data, originalMsg) {
+            const dayMsg = RED.util.cloneMessage(originalMsg);
+            dayMsg.payload = {
+                value: data.currentDay && data.currentDay.value !== undefined
+                    ? data.currentDay.value
+                    : null,
+                flowRate: data.flowRate !== undefined ? data.flowRate : null,
+                period: data.currentDay && data.currentDay.period
+                    ? data.currentDay.period
+                    : null,
+                goal: data.currentDay && data.currentDay.goal !== undefined
+                    ? data.currentDay.goal
+                    : null
+            };
+            return dayMsg;
+        };
+
+        // Helper function to build the gauge message for output 2 (current month value + goal as max)
         // msg.payload      - current month value (Dashboard 1 & 2)
         // msg.ui_control   - { max: goal } for Dashboard 1 gauge
         // msg.ui_update    - { max: goal } for Dashboard 2 gauge
@@ -118,15 +140,17 @@ function NodeREDModule(RED) {
         };
 
         // Helper function to generate output based on current mode
-        // output 1 (index 0): gauge message (current month value + goal as max)
-        // output 2 (index 1): existing data output based on outputMode
+        // output 1 (index 0): day+flow message (current day value + flow rate)
+        // output 2 (index 1): gauge message (current month value + goal as max)
+        // output 3 (index 2): existing data output based on outputMode
         const generateOutput = function(data, msg) {
+            const dayFlowMsg = buildDayFlowMsg(data, msg);
             const gaugeMsg = buildGaugeMsg(data, msg);
 
             if (node.outputMode === 'last') {
                 msg.payload = data.lastValue;
                 msg.flowRate = data.flowRate !== undefined ? data.flowRate : null;
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'current') {
                 msg.payload = {
                     lastValue: data.lastValue,
@@ -136,10 +160,10 @@ function NodeREDModule(RED) {
                     currentYear: data.currentYear,
                     flowRate: data.flowRate !== undefined ? data.flowRate : null
                 };
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'all') {
                 msg.payload = data;
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'hour_history') {
                 const historyData = [data.currentHour, ...data.hourHistory];
                 
@@ -160,7 +184,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'day_history') {
                 const historyData = [data.currentDay, ...data.dayHistory];
                 
@@ -189,7 +213,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'month_history') {
                 const historyData = [data.currentMonth, ...data.monthHistory];
                 
@@ -218,7 +242,7 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'year_history') {
                 const historyData = [data.currentYear, ...data.yearHistory];
                 
@@ -247,10 +271,10 @@ function NodeREDModule(RED) {
                         labels: historyData.map(entry => entry.period)
                     }];
                 }
-                node.send([gaugeMsg, msg]);
+                node.send([dayFlowMsg, gaugeMsg, msg]);
             } else {
-                // 'none' mode: still send gauge on output 1, nothing on output 2
-                node.send([gaugeMsg, null]);
+                // 'none' mode: send day+flow and gauge, nothing on output 3
+                node.send([dayFlowMsg, gaugeMsg, null]);
             }
         };
         
