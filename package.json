@@ -1,7 +1,7 @@
 {
   "name": "@schey-dev/node-red-contrib-history-tracker",
-  "version": "1.0.1",
-  "description": "Node-RED node to track and store historical values with automatic time-based aggregation (hour, day, month, year)",
+  "version": "2.2.1",
+  "description": "Node-RED node to track and store historical values with automatic time-based aggregation (hour, day, month, year), flow rate calculation, goal tracking, and Dashboard 1/2 chart output",
   "main": "history-tracker.js",
   "scripts": {
     "test": "node test-functions.js"

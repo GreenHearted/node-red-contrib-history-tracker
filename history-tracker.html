@@ -162,104 +162,122 @@
 
 <script type="text/html" data-help-name="history-tracker">
     <p>Tracks counter values with automatic difference calculation and aggregates them by hour, day, month, and year.</p>
-    
+
+    <h3>Outputs</h3>
+    <p>The node always sends on all 4 outputs simultaneously.</p>
+    <ol>
+        <li>
+            <b>Full data object</b> — <code>msg.payload</code> contains the complete internal data structure
+            including all current periods, all history arrays, flow rate, and goal configuration.
+        </li>
+        <li>
+            <b>Current day + flow rate</b> — <code>msg.payload</code> is a compact object:
+            <pre>{ value, flowRate, period, goal }</pre>
+            <code>flowRate</code> is in unit/min, rounded to 1 decimal place.
+            <code>goal</code> is only present when a yearly goal is configured.
+        </li>
+        <li>
+            <b>Gauge (current month)</b> — <code>msg.payload</code> = current month value (number).<br/>
+            Dashboard 2: <code>msg.ui_update = { max: goalMax }</code><br/>
+            Dashboard 1: <code>msg.ui_control = { max: goalMax }</code>
+        </li>
+        <li>
+            <b>Configurable data output</b> — content depends on the configured <b>Output Mode</b> (see below).
+            History outputs are limited to the most recent entries:
+            hour_history = 24h, day_history = 7 days, month_history = 12 months, year_history = 10 years.
+        </li>
+    </ol>
+
     <h3>Configuration</h3>
     <dl class="message-properties">
         <dt>File Path <span class="property-type">string</span></dt>
-        <dd>Path to history file. Filename only = stored in userDir, full path = absolute path</dd>
-        
+        <dd>Path to history file. Filename only = stored in userDir, full path = absolute path.</dd>
+
         <dt>Value Field <span class="property-type">string</span></dt>
-        <dd>Name of the field in msg to read the value from (default: payload)</dd>
-        
+        <dd>Name of the field in msg to read the value from (default: payload).</dd>
+
         <dt>Unit <span class="property-type">string</span></dt>
-        <dd>Unit of measurement (e.g. Liter, kWh, m³)</dd>
-        
+        <dd>Unit of measurement (e.g. Liter, kWh, m³).</dd>
+
         <dt>Output Mode <span class="property-type">string</span></dt>
-        <dd>Determines what data is sent as output</dd>
-        
+        <dd>Determines what data is sent on <b>output 4</b>. Outputs 1–3 are always sent regardless of this setting.</dd>
+
         <dt>Chart Format <span class="property-type">string</span></dt>
-        <dd>Dashboard 2.0 format (flat array) or Dashboard 1.0 format (series/data/labels)</dd>
-        
+        <dd>Dashboard 2.0 format (flat array) or Dashboard 1.0 format (series/data/labels). Also affects the gauge message on output 3.</dd>
+
+        <dt>Max Flow Interval <span class="property-type">number</span></dt>
+        <dd>Maximum time gap in minutes between measurements for flow rate calculation. If the gap is larger, flow rate is set to 0 (device was off).</dd>
+
         <dt>History Limits <span class="property-type">number</span></dt>
-        <dd>Maximum number of entries per history type (0 = unlimited). Oldest entries are automatically removed.</dd>
+        <dd>Maximum number of stored entries per period type (0 = unlimited). Month history is always at least 24 for goal calculations.</dd>
     </dl>
 
-    <h3>How It Works</h3>
-    <p>The node calculates the difference between consecutive values and sums them per time period.</p>
-    <ul>
-        <li>Negative differences are ignored (counter reset)</li>
-        <li>When a period changes, the new period starts at 0</li>
-        <li>The old period is moved to history</li>
-        <li>History is limited to configured maximums (newest first)</li>
-        <li>Missing periods are automatically filled with zero values</li>
-    </ul>
-    
+    <h3>Output Modes (Output 4)</h3>
+    <dl class="message-properties">
+        <dt>none</dt><dd>Nothing sent on output 4.</dd>
+        <dt>last</dt><dd><code>msg.payload</code> = last raw value object; <code>msg.flowRate</code> = raw flow rate.</dd>
+        <dt>current</dt><dd><code>msg.payload</code> = object with all current period values + flowRate.</dd>
+        <dt>all</dt><dd><code>msg.payload</code> = complete data object (same as output 1).</dd>
+        <dt>hour_history</dt><dd>Chart data for the last 24 hours.</dd>
+        <dt>day_history</dt><dd>Chart data for the last 7 days (incl. goal series).</dd>
+        <dt>month_history</dt><dd>Chart data for the last 12 months (incl. goal series).</dd>
+        <dt>year_history</dt><dd>Chart data for the last 10 years (incl. goal series).</dd>
+    </dl>
+
     <h3>Dynamic Output Mode Control</h3>
     <p>The output mode can be changed at runtime via a message:</p>
-    <pre>
-msg.topic = "setOutputMode";
-msg.payload = "month_history";  // or: none, last, current, all, hour_history, day_history, year_history
-return msg;
-    </pre>
-    <p>This allows using the same History Tracker node for different dashboards or views without sending data when not needed.</p>
-    
+    <pre>msg.topic = "setOutputMode";
+msg.payload = "month_history";
+return msg;</pre>
+
     <h3>Chart Output Formats</h3>
     <h4>Dashboard 2.0 Format</h4>
-    <p>Flat array of objects for modern Dashboard 2.0 charts:</p>
-    <pre>
-[
-  { label: 'actual', time: '2024-01', val: 150 },
-  { label: 'goal', time: '2024-01', val: 120 },
+    <pre>[
+  { label: 'actual', time: '2025-01', val: 150 },
+  { label: 'goal',   time: '2025-01', val: 120 },
   ...
-]
-    </pre>
-    <p><b>Chart Configuration:</b> Key for series: <code>label</code>, Key for x-axis: <code>time</code>, Key for y-axis: <code>val</code></p>
-    
+]</pre>
+    <p>Chart configuration: series key = <code>label</code>, x-axis key = <code>time</code>, y-axis key = <code>val</code>.</p>
+
     <h4>Dashboard 1.0 Format (Legacy)</h4>
-    <p>Traditional format for old Dashboard charts:</p>
-    <pre>
-[{
+    <pre>[{
   series: ['actual', 'goal'],
   data: [[150, 130, ...], [120, 120, ...]],
-  labels: ['2024-01', '2024-02', ...]
-}]
-    </pre>
-    
+  labels: ['2025-01', '2025-02', ...]
+}]</pre>
+
+    <h3>How It Works</h3>
+    <ul>
+        <li>The node calculates the difference between consecutive input values and sums them per period.</li>
+        <li>Negative differences are ignored (counter reset protection).</li>
+        <li>When a period changes, the current period is moved to history and a new one starts at 0.</li>
+        <li>History is kept newest-first and trimmed to configured limits.</li>
+    </ul>
+
     <h3>Min/Max Tracking</h3>
-    <p>When a period changes, minimum and maximum values are automatically calculated from sub-periods:</p>
+    <p>Automatically calculated when a period is moved to history:</p>
     <ul>
-        <li><b>Day → History:</b> Min/Max from hourly values of the day</li>
-        <li><b>Month → History:</b> Min/Max from daily values of the month</li>
-        <li><b>Year → History:</b> Min/Max from monthly values of the year</li>
+        <li><b>Day → History:</b> Min/Max from hourly values of that day</li>
+        <li><b>Month → History:</b> Min/Max from daily values of that month</li>
+        <li><b>Year → History:</b> Min/Max from monthly values of that year</li>
     </ul>
-    <p><i>Note: Min/Max are only stored for completed periods in history, not for current periods.</i></p>
-    
-    <h3>Backwards Compatibility</h3>
-    <p>The node is fully backwards compatible with older data files:</p>
+
+    <h3>Yearly Goal</h3>
     <ul>
-        <li>Old files without Min/Max values are read correctly</li>
-        <li>New Min/Max values are calculated from the next period change</li>
-        <li>Old entries retain their original format</li>
-        <li>Legacy German timestamp format (DD.MM.YYYY, HH:MM:SS) is supported</li>
+        <li><b>Yearly Goal:</b> Target value (e.g. 1800 Liter). 0 = disabled.</li>
+        <li><b>Start/End Month:</b> Goal period (can span year boundaries, e.g. Oct–Mar).</li>
+        <li>Remaining goal is distributed evenly across remaining days and months.</li>
+        <li>Goals are recalculated on every startup and on every period rollover.</li>
+        <li>Consumption is calculated from month-level data only.</li>
     </ul>
-    
-    <h3>Yearly Goal / Limit</h3>
-    <p>Define a yearly goal for monitored consumption:</p>
-    <ul>
-        <li><b>Yearly Goal:</b> Target value (e.g. 1000 Liter). 0 = disabled.</li>
-        <li><b>Start/End Month:</b> Period for the goal (e.g. January to December)</li>
-        <li>Goal is calculated over the defined period</li>
-        <li>Works across year boundaries (e.g. October to March)</li>
-        <li>Remaining goal is distributed evenly across remaining days/months</li>
-        <li>Consumption is calculated from month-level data only</li>
-    </ul>
-    
+
     <h3>Gap Filling</h3>
-    <p>If the node detects missing periods (e.g. Node-RED was offline), it automatically fills gaps with zero values:</p>
+    <p>If Node-RED was offline and periods were missed, gaps are automatically filled with zero-value entries so history remains continuous.</p>
+
+    <h3>Backwards Compatibility</h3>
     <ul>
-        <li>Missing hours, days, months, or years are detected</li>
-        <li>Gaps are filled with entries having value 0</li>
-        <li>Timestamps are calculated for missing periods</li>
-        <li>History remains continuous without data loss</li>
+        <li>Old files without Min/Max or goal values are read correctly.</li>
+        <li>Legacy German timestamp format (DD.MM.YYYY, HH:MM:SS) is supported.</li>
+        <li>No manual migration required.</li>
     </ul>
 </script>

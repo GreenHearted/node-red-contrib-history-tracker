@@ -3,6 +3,12 @@ const path = require('path');
 
 const VERSION = "2.2.1";
 
+// Output limits for history modes (data output, index 3)
+const OUTPUT_LIMIT_HOURS  = 24;  // hours
+const OUTPUT_LIMIT_DAYS   = 7;   // days
+const OUTPUT_LIMIT_MONTHS = 12;  // months
+const OUTPUT_LIMIT_YEARS  = 10;  // years
+
 // Exported helper functions for testing
 const HistoryTrackerUtils = {
     loadData,
@@ -149,7 +155,7 @@ function NodeREDModule(RED) {
             const gaugeMsg = buildGaugeMsg(data, msg);
 
             if (node.outputMode === 'hour_history') {
-                const historyData = [data.currentHour, ...data.hourHistory];
+                const historyData = [data.currentHour, ...data.hourHistory].slice(0, OUTPUT_LIMIT_HOURS);
                 
                 if (node.chartFormat === 'dashboard2') {
                     const chartPayload = [];
@@ -170,7 +176,7 @@ function NodeREDModule(RED) {
                 }
                 node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'day_history') {
-                const historyData = [data.currentDay, ...data.dayHistory];
+                const historyData = [data.currentDay, ...data.dayHistory].slice(0, OUTPUT_LIMIT_DAYS);
                 
                 if (node.chartFormat === 'dashboard2') {
                     const chartPayload = [];
@@ -199,7 +205,7 @@ function NodeREDModule(RED) {
                 }
                 node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'month_history') {
-                const historyData = [data.currentMonth, ...data.monthHistory];
+                const historyData = [data.currentMonth, ...data.monthHistory].slice(0, OUTPUT_LIMIT_MONTHS);
                 
                 if (node.chartFormat === 'dashboard2') {
                     const chartPayload = [];
@@ -228,7 +234,7 @@ function NodeREDModule(RED) {
                 }
                 node.send([fullDataMsg, dayFlowMsg, gaugeMsg, msg]);
             } else if (node.outputMode === 'year_history') {
-                const historyData = [data.currentYear, ...data.yearHistory];
+                const historyData = [data.currentYear, ...data.yearHistory].slice(0, OUTPUT_LIMIT_YEARS);
                 
                 if (node.chartFormat === 'dashboard2') {
                     const chartPayload = [];
